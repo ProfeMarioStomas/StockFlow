@@ -1,9 +1,11 @@
-import { Hono } from "hono";
+import { swaggerUI } from "@hono/swagger-ui";
+import { OpenAPIHono } from "@hono/zod-openapi";
 import { correlationMiddleware } from "./middleware/correlation";
 import { errorHandler } from "./middleware/error";
 import type { AppContext } from "./types";
+import { usersRouter } from "./controllers/user.controller";
 
-const app = new Hono<AppContext>();
+const app = new OpenAPIHono<AppContext>();
 
 // ── Global middleware ────────────────────────────────────────────────────────
 app.use("*", correlationMiddleware);
@@ -31,8 +33,22 @@ app.get("/ready", (c) =>
 );
 
 // ── API routes ───────────────────────────────────────────────────────────────
+app.route("/api/v1/users", usersRouter);
+
 // Mount feature routers here as they are implemented:
 // import { authRouter } from "./controllers/auth.controller";
 // app.route("/api/v1/auth", authRouter);
+
+// ── OpenAPI spec & Swagger UI ─────────────────────────────────────────────────
+app.doc("/api/docs/spec", {
+  openapi: "3.1.0",
+  info: {
+    title: "StockFlow API",
+    version: "1.0.0",
+    description: "REST API for StockFlow — inventory and sales management",
+  },
+});
+
+app.get("/api/docs", swaggerUI({ url: "/api/docs/spec" }));
 
 export default app;

@@ -28,12 +28,14 @@ export const errorHandler: ErrorHandler<AppContext> = (err, c) => {
       }),
     );
 
+    const details = (err as HTTPException & { details?: unknown[] }).details ?? [];
+
     return c.json(
       {
         error: {
           code: httpStatusToCode(status),
           message: err.message,
-          details: [],
+          details,
         },
       },
       status,
