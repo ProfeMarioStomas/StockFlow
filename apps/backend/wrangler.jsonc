@@ -1,0 +1,15 @@
+{
+  // StockFlow API — Cloudflare Workers
+  "name": "stockflow-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-09-23",
+
+  // Non-secret env vars
+  "vars": {
+    "NODE_ENV": "production"
+  }
+
+  // Secrets — set via: wrangler secret put <NAME>
+  //   DATABASE_URL  — Neon PostgreSQL connection string
+  //   JWT_SECRET    — HS256 signing key (min 32 chars)
+}

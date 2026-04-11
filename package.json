@@ -1,0 +1,16 @@
+{
+  "name": "stockflow",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev:backend": "pnpm -F backend dev",
+    "dev:frontend": "pnpm -F frontend dev",
+    "test:backend": "pnpm -F backend test",
+    "test:frontend": "pnpm -F frontend test",
+    "lint:backend": "pnpm -F backend lint",
+    "lint:frontend": "pnpm -F frontend lint",
+    "format:backend": "pnpm -F backend format",
+    "format:frontend": "pnpm -F frontend format"
+  }
+}
