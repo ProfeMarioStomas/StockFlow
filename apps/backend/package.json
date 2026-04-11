@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "dotenv -e .dev.vars -- drizzle-kit migrate"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
@@ -30,6 +30,7 @@
     "typescript": "^5.8.0",
     "typescript-eslint": "^8.0.0",
     "vitest": "^3.1.0",
+    "dotenv-cli": "^8.0.0",
     "wrangler": "^4.0.0"
   }
 }
