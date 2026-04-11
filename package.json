@@ -11,6 +11,8 @@
     "lint:backend": "pnpm -F backend lint",
     "lint:frontend": "pnpm -F frontend lint",
     "format:backend": "pnpm -F backend format",
-    "format:frontend": "pnpm -F frontend format"
+    "format:frontend": "pnpm -F frontend format",
+    "db:generate": "pnpm -F backend db:generate",
+    "db:migrate": "pnpm -F backend db:migrate"
   }
 }
