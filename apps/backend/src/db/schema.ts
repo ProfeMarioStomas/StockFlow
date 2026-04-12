@@ -127,10 +127,16 @@ export const inventoryReceipts = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     notes: text("notes"),
+    receivedById: uuid("received_by_id")
+      .notNull()
+      .references(() => users.id),
     isActive: boolean("is_active").notNull().default(true),
     ...timestamps,
   },
-  (table) => [index("inventory_receipts_is_active_idx").on(table.isActive)],
+  (table) => [
+    index("inventory_receipts_is_active_idx").on(table.isActive),
+    index("inventory_receipts_received_by_id_idx").on(table.receivedById),
+  ],
 );
 
 // ── inventory_receipt_details ─────────────────────────────────────────────────

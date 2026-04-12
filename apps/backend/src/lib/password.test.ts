@@ -6,8 +6,8 @@ describe("hashPassword", () => {
     const result = await hashPassword("mypassword");
     const parts = result.split(":");
     expect(parts).toHaveLength(2);
-    expect(parts[0].length).toBeGreaterThan(0);
-    expect(parts[1].length).toBeGreaterThan(0);
+    expect(parts[0]!.length).toBeGreaterThan(0);
+    expect(parts[1]!.length).toBeGreaterThan(0);
   });
 
   it("produces different hashes for the same password due to random salt", async () => {

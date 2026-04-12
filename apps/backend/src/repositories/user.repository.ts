@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import type { Database } from "../db/client";
 import { users } from "../db/schema";
 import type { UserResponse } from "../models/user.model";
@@ -54,7 +54,7 @@ export function createUserRepository(db: Database) {
       role: "admin" | "seller";
     }): Promise<UserRecord> {
       const rows = await db.insert(users).values(data).returning();
-      return toUserRecord(rows[0]);
+      return toUserRecord(rows[0]!);
     },
 
     async update(
@@ -78,6 +78,23 @@ export function createUserRepository(db: Database) {
         .where(eq(users.id, id))
         .returning();
       return rows[0] ? toUserRecord(rows[0]) : undefined;
+    },
+
+    async count(): Promise<number> {
+      const [row] = await db.select({ total: sql<number>`count(*)` }).from(users);
+      return Number(row?.total ?? 0);
+    },
+
+    async findPage(pagination?: { limit: number; offset: number }): Promise<UserRecord[]> {
+      const limit = pagination?.limit ?? 20;
+      const offset = pagination?.offset ?? 0;
+      const rows = await db
+        .select()
+        .from(users)
+        .orderBy(desc(users.createdAt))
+        .limit(limit)
+        .offset(offset);
+      return rows.map(toUserRecord);
     },
   };
 }

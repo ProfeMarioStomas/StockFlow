@@ -8,6 +8,8 @@ const { mockRepo, mockCacheStore } = vi.hoisted(() => ({
     findAll: vi.fn(),
     findById: vi.fn(),
     findByEmail: vi.fn(),
+    findPage: vi.fn(),
+    count: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     softDelete: vi.fn(),
@@ -60,32 +62,43 @@ beforeEach(() => {
 // ── listUsers ─────────────────────────────────────────────────────────────────
 
 describe("listUsers", () => {
-  it("returns cached value on cache hit without hitting the DB", async () => {
-    const cached = [{ ...sampleRecord }];
-    mockCacheStore.get.mockReturnValue(cached);
+  it("returns paginated response with data and meta", async () => {
+    mockRepo.findPage.mockResolvedValue([sampleRecord]);
+    mockRepo.count.mockResolvedValue(1);
 
     const service = createUserService(mockDb);
     const result = await service.listUsers();
 
-    expect(result).toBe(cached);
-    expect(mockRepo.findAll).not.toHaveBeenCalled();
+    expect(mockRepo.findPage).toHaveBeenCalledOnce();
+    expect(mockRepo.count).toHaveBeenCalledOnce();
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]).not.toHaveProperty("passwordHash");
+    expect(result.meta.total).toBe(1);
+    expect(result.meta.page).toBe(1);
+    expect(result.meta.pageSize).toBe(20);
+    expect(result.meta.totalPages).toBe(1);
   });
 
-  it("fetches from DB, strips passwordHash, and caches on miss", async () => {
-    mockCacheStore.get.mockReturnValue(undefined);
-    mockRepo.findAll.mockResolvedValue([sampleRecord]);
+  it("strips passwordHash from each user in the response", async () => {
+    mockRepo.findPage.mockResolvedValue([sampleRecord]);
+    mockRepo.count.mockResolvedValue(1);
 
     const service = createUserService(mockDb);
     const result = await service.listUsers();
 
-    expect(mockRepo.findAll).toHaveBeenCalledOnce();
-    expect(mockCacheStore.set).toHaveBeenCalledWith(
-      "users:list",
-      expect.any(Array),
-      expect.any(Number),
-    );
-    expect(result).toHaveLength(1);
-    expect(result[0]).not.toHaveProperty("passwordHash");
+    expect(result.data[0]).not.toHaveProperty("passwordHash");
+    expect(result.data[0]!.email).toBe(sampleRecord.email);
+  });
+
+  it("calculates totalPages correctly", async () => {
+    mockRepo.findPage.mockResolvedValue([sampleRecord]);
+    mockRepo.count.mockResolvedValue(50);
+
+    const service = createUserService(mockDb);
+    const result = await service.listUsers(1, 10);
+
+    expect(result.meta.totalPages).toBe(5);
+    expect(result.meta.pageSize).toBe(10);
   });
 });
 

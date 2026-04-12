@@ -2,7 +2,11 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { getConfig } from "../config";
 import { createDb } from "../db/client";
 import { throwValidationError } from "../lib/validation";
-import { ErrorResponseSchema } from "../models/common.model";
+import {
+  ErrorResponseSchema,
+  PaginationQuerySchema,
+  paginatedSchema,
+} from "../models/common.model";
 import {
   ChangePasswordSchema,
   CreateUserSchema,
@@ -11,6 +15,8 @@ import {
 } from "../models/user.model";
 import { createUserService } from "../services/user.service";
 import type { AppContext } from "../types";
+
+const PaginatedUsersSchema = paginatedSchema(UserResponseSchema).openapi("PaginatedUsers");
 
 // ── Shared schemas ────────────────────────────────────────────────────────────
 
@@ -39,11 +45,12 @@ const listUsersRoute = createRoute({
   method: "get",
   path: "/",
   tags: ["Users"],
-  summary: "List all users",
+  summary: "List users (paginated)",
+  request: { query: PaginationQuerySchema },
   responses: {
     200: {
-      content: { "application/json": { schema: z.array(UserResponseSchema) } },
-      description: "Returns all users",
+      content: { "application/json": { schema: PaginatedUsersSchema } },
+      description: "Returns a paginated list of users",
     },
   },
 });
@@ -142,11 +149,12 @@ const deleteUserRoute = createRoute({
 // ── Handlers ──────────────────────────────────────────────────────────────────
 
 usersRouter.openapi(listUsersRoute, async (c) => {
+  const { page, pageSize } = c.req.valid("query");
   const config = getConfig(c.env);
   const db = createDb(config.DATABASE_URL);
   const service = createUserService(db);
-  const users = await service.listUsers();
-  return c.json(users, 200);
+  const result = await service.listUsers(page, pageSize);
+  return c.json(result, 200);
 });
 
 usersRouter.openapi(getUserRoute, async (c) => {

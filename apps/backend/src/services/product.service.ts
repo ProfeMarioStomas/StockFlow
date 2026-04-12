@@ -1,0 +1,100 @@
+import { HTTPException } from "hono/http-exception";
+import type { Database } from "../db/client";
+import { cache } from "../lib/cache";
+import type { PaginatedResponse } from "../models/common.model";
+import type {
+  CreateProductInput,
+  ProductResponse,
+  UpdateProductInput,
+} from "../models/product.model";
+import { createProductRepository } from "../repositories/product.repository";
+
+const TTL_5MIN = 5 * 60 * 1000;
+
+export type ProductService = ReturnType<typeof createProductService>;
+
+export function createProductService(db: Database) {
+  const repo = createProductRepository(db);
+
+  return {
+    async listProducts(
+      filters?: { isActive?: boolean },
+      page = 1,
+      pageSize = 20,
+    ): Promise<PaginatedResponse<ProductResponse>> {
+      const [records, total] = await Promise.all([
+        repo.findPage(filters, { limit: pageSize, offset: (page - 1) * pageSize }),
+        repo.count(filters),
+      ]);
+      return {
+        data: records,
+        meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+      };
+    },
+
+    async listAllProducts(filters?: { isActive?: boolean }): Promise<ProductResponse[]> {
+      const cached = cache.get<ProductResponse[]>("products:list");
+      if (cached) return cached;
+
+      const records = await repo.findAll(filters);
+      cache.set("products:list", records, TTL_5MIN);
+      return records;
+    },
+
+    async getProductById(id: string): Promise<ProductResponse> {
+      const cached = cache.get<ProductResponse>(`products:${id}`);
+      if (cached) return cached;
+
+      const record = await repo.findById(id);
+      if (!record) {
+        throw new HTTPException(404, { message: "Product not found" });
+      }
+
+      cache.set(`products:${id}`, record, TTL_5MIN);
+      return record;
+    },
+
+    async createProduct(input: CreateProductInput): Promise<ProductResponse> {
+      const record = await repo.create({
+        name: input.name,
+        price: input.price,
+        ...(input.stock !== undefined ? { stock: input.stock } : {}),
+      });
+
+      cache.invalidate("products:list");
+      return record;
+    },
+
+    async updateProduct(id: string, input: UpdateProductInput): Promise<ProductResponse> {
+      const existing = await repo.findById(id);
+      if (!existing) {
+        throw new HTTPException(404, { message: "Product not found" });
+      }
+
+      const updateData: Partial<{ name: string; price: number; isActive: boolean }> = {};
+      if (input.name !== undefined) updateData.name = input.name;
+      if (input.price !== undefined) updateData.price = input.price;
+      if (input.isActive !== undefined) updateData.isActive = input.isActive;
+
+      const updated = await repo.update(id, updateData);
+      if (!updated) {
+        throw new HTTPException(404, { message: "Product not found" });
+      }
+
+      cache.invalidate(`products:${id}`);
+      cache.invalidate("products:list");
+      return updated;
+    },
+
+    async deleteProduct(id: string): Promise<void> {
+      const existing = await repo.findById(id);
+      if (!existing) {
+        throw new HTTPException(404, { message: "Product not found" });
+      }
+
+      await repo.softDelete(id);
+      cache.invalidate(`products:${id}`);
+      cache.invalidate("products:list");
+    },
+  };
+}

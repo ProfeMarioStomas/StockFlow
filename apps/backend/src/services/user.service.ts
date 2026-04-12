@@ -2,6 +2,7 @@ import { HTTPException } from "hono/http-exception";
 import type { Database } from "../db/client";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { cache } from "../lib/cache";
+import type { PaginatedResponse } from "../models/common.model";
 import type {
   CreateUserInput,
   UpdateUserInput,
@@ -38,14 +39,15 @@ export function createUserService(db: Database) {
   const repo = createUserRepository(db);
 
   return {
-    async listUsers(): Promise<UserResponse[]> {
-      const cached = cache.get<UserResponse[]>("users:list");
-      if (cached) return cached;
-
-      const records = await repo.findAll();
-      const result = records.map(toUserResponse);
-      cache.set("users:list", result, TTL_5MIN);
-      return result;
+    async listUsers(page = 1, pageSize = 20): Promise<PaginatedResponse<UserResponse>> {
+      const [records, total] = await Promise.all([
+        repo.findPage({ limit: pageSize, offset: (page - 1) * pageSize }),
+        repo.count(),
+      ]);
+      return {
+        data: records.map(toUserResponse),
+        meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+      };
     },
 
     async getUserById(id: string): Promise<UserResponse> {
@@ -93,7 +95,18 @@ export function createUserService(db: Database) {
         }
       }
 
-      const updated = await repo.update(id, input);
+      const updateData: Partial<{
+        name: string;
+        email: string;
+        role: "admin" | "seller";
+        isActive: boolean;
+      }> = {};
+      if (input.name !== undefined) updateData.name = input.name;
+      if (input.email !== undefined) updateData.email = input.email;
+      if (input.role !== undefined) updateData.role = input.role;
+      if (input.isActive !== undefined) updateData.isActive = input.isActive;
+
+      const updated = await repo.update(id, updateData);
       if (!updated) {
         throw new HTTPException(404, { message: "User not found" });
       }

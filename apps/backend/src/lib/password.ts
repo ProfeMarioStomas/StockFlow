@@ -10,8 +10,9 @@ const ITERATIONS = 100_000;
 const KEY_LENGTH = 32; // 256 bits
 const ALGORITHM = "SHA-256";
 
-function bufferToBase64(buffer: ArrayBuffer): string {
-  return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+function bufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
+  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+  return btoa(String.fromCharCode(...bytes));
 }
 
 function base64ToBuffer(b64: string): Uint8Array {
@@ -66,7 +67,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
 
   let diff = 0;
   for (let i = 0; i < actualHash.length; i++) {
-    diff |= actualHash[i] ^ expectedHash[i];
+    diff |= actualHash[i]! ^ expectedHash[i]!;
   }
 
   return diff === 0;

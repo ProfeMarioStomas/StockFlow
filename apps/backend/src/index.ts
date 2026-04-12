@@ -1,9 +1,16 @@
 import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { authRouter } from "./controllers/auth.controller";
+import { inventoryReceiptsRouter } from "./controllers/inventory-receipt.controller";
+import { productsRouter } from "./controllers/product.controller";
+import { salesRouter } from "./controllers/sale.controller";
+import { systemLogsRouter } from "./controllers/system-log.controller";
+import { usersRouter } from "./controllers/user.controller";
+import { auditMiddleware } from "./middleware/audit";
+import { authMiddleware } from "./middleware/auth";
 import { correlationMiddleware } from "./middleware/correlation";
 import { errorHandler } from "./middleware/error";
 import type { AppContext } from "./types";
-import { usersRouter } from "./controllers/user.controller";
 
 const app = new OpenAPIHono<AppContext>();
 
@@ -33,11 +40,22 @@ app.get("/ready", (c) =>
 );
 
 // ── API routes ───────────────────────────────────────────────────────────────
-app.route("/api/v1/users", usersRouter);
 
-// Mount feature routers here as they are implemented:
-// import { authRouter } from "./controllers/auth.controller";
-// app.route("/api/v1/auth", authRouter);
+// Auth routes are mounted BEFORE the wildcard middleware so they stay public.
+// Hono evaluates handlers in registration order — a matched route stops the chain.
+app.route("/api/v1/auth", authRouter);
+
+// Protect all other v1 routes with JWT auth
+app.use("/api/v1/*", authMiddleware);
+
+// Audit all mutations on protected routes (runs after authMiddleware sets user)
+app.use("/api/v1/*", auditMiddleware);
+
+app.route("/api/v1/users", usersRouter);
+app.route("/api/v1/products", productsRouter);
+app.route("/api/v1/sales", salesRouter);
+app.route("/api/v1/inventory-receipts", inventoryReceiptsRouter);
+app.route("/api/v1/system-logs", systemLogsRouter);
 
 // ── OpenAPI spec & Swagger UI ─────────────────────────────────────────────────
 app.doc("/api/docs/spec", {

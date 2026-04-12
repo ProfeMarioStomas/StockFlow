@@ -49,6 +49,13 @@ pnpm db:migrate   # drizzle-kit migrate — apply pending migrations
 pnpm deploy       # wrangler deploy — deploy to Cloudflare Workers
 ```
 
+After `pnpm dev`, the API docs are available at:
+
+| URL                                   | Description           |
+| ------------------------------------- | --------------------- |
+| `http://localhost:8787/api/docs`      | Swagger UI            |
+| `http://localhost:8787/api/docs/spec` | OpenAPI 3.1 JSON spec |
+
 ## REST API Conventions
 
 ### URL Format
