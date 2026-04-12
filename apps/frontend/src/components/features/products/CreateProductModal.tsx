@@ -13,9 +13,14 @@ interface CreateProductModalProps {
   onClose: () => void;
 }
 
+type ServerError = {
+  message: string;
+  details?: { field: string; message: string }[];
+};
+
 export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
   const queryClient = useQueryClient();
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<ServerError | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -34,9 +39,9 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
       name: "",
       barcode: "",
       price: "" as unknown as number,
-      costPrice: "" as unknown as number | undefined,
-      stock: "" as unknown as number | undefined,
-      criticalStock: "" as unknown as number | undefined,
+      costPrice: undefined as number | undefined,
+      stock: undefined as number | undefined,
+      criticalStock: undefined as number | undefined,
     },
     validators: { onSubmit: createProductSchema },
     onSubmit: async ({ value }) => {
@@ -47,14 +52,21 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
           const uploaded = await productService.uploadImage(imageFile);
           imageKey = uploaded.key;
         }
-        await productService.createProduct({ ...value, imageKey });
+        // TanStack Form passes raw form state (HTML inputs return strings).
+        // Parse through the Zod schema to coerce numeric fields before sending to the API.
+        const coerced = createProductSchema.parse(value);
+        await productService.createProduct({ ...coerced, imageKey });
         await queryClient.invalidateQueries({ queryKey: ["products"] });
         handleClose();
       } catch (err) {
-        const axiosError = err as AxiosError<{ error: { message: string } }>;
-        setServerError(
-          axiosError.response?.data?.error?.message ?? "An unexpected error occurred.",
-        );
+        const axiosError = err as AxiosError<{
+          error: { message: string; details?: { field: string; message: string }[] };
+        }>;
+        const error = axiosError.response?.data?.error;
+        setServerError({
+          message: error?.message ?? "An unexpected error occurred.",
+          details: error?.details?.length ? error.details : undefined,
+        });
       }
     },
   });
@@ -109,7 +121,16 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
             role="alert"
             className="rounded-[var(--radius-md)] border border-[var(--color-destructive)]/30 bg-[var(--color-error-bg)] px-3 py-2 text-sm text-[var(--color-error-text)]"
           >
-            {serverError}
+            <p>{serverError.message}</p>
+            {serverError.details && (
+              <ul className="mt-1 list-inside list-disc space-y-0.5">
+                {serverError.details.map((d, i) => (
+                  <li key={i}>
+                    <span className="font-medium">{d.field}</span>: {d.message}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 
@@ -168,9 +189,13 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
                 min={0}
                 step={0.01}
                 helperText="Optional."
-                value={field.state.value as unknown as string}
+                value={(field.state.value ?? "") as unknown as string}
                 onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value as unknown as number)}
+                onChange={(e) =>
+                  field.handleChange(
+                    e.target.value === "" ? undefined : (e.target.value as unknown as number),
+                  )
+                }
                 error={field.state.meta.errors[0]?.message}
               />
             )}
@@ -187,9 +212,13 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
                 min={0}
                 step={1}
                 helperText="Optional — defaults to 0."
-                value={field.state.value as unknown as string}
+                value={(field.state.value ?? "") as unknown as string}
                 onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value as unknown as number)}
+                onChange={(e) =>
+                  field.handleChange(
+                    e.target.value === "" ? undefined : (e.target.value as unknown as number),
+                  )
+                }
                 error={field.state.meta.errors[0]?.message}
               />
             )}
@@ -204,9 +233,13 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
                 min={0}
                 step={1}
                 helperText="Alert threshold. Optional."
-                value={field.state.value as unknown as string}
+                value={(field.state.value ?? "") as unknown as string}
                 onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value as unknown as number)}
+                onChange={(e) =>
+                  field.handleChange(
+                    e.target.value === "" ? undefined : (e.target.value as unknown as number),
+                  )
+                }
                 error={field.state.meta.errors[0]?.message}
               />
             )}
