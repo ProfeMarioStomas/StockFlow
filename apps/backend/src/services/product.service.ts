@@ -57,8 +57,11 @@ export function createProductService(db: Database) {
     async createProduct(input: CreateProductInput): Promise<ProductResponse> {
       const record = await repo.create({
         name: input.name,
+        barcode: input.barcode,
         price: input.price,
+        ...(input.costPrice !== undefined ? { costPrice: input.costPrice } : {}),
         ...(input.stock !== undefined ? { stock: input.stock } : {}),
+        ...(input.criticalStock !== undefined ? { criticalStock: input.criticalStock } : {}),
       });
 
       cache.invalidate("products:list");
@@ -71,9 +74,19 @@ export function createProductService(db: Database) {
         throw new HTTPException(404, { message: "Product not found" });
       }
 
-      const updateData: Partial<{ name: string; price: number; isActive: boolean }> = {};
+      const updateData: Partial<{
+        name: string;
+        barcode: string;
+        price: number;
+        costPrice: number;
+        criticalStock: number;
+        isActive: boolean;
+      }> = {};
       if (input.name !== undefined) updateData.name = input.name;
+      if (input.barcode !== undefined) updateData.barcode = input.barcode;
       if (input.price !== undefined) updateData.price = input.price;
+      if (input.costPrice !== undefined) updateData.costPrice = input.costPrice;
+      if (input.criticalStock !== undefined) updateData.criticalStock = input.criticalStock;
       if (input.isActive !== undefined) updateData.isActive = input.isActive;
 
       const updated = await repo.update(id, updateData);

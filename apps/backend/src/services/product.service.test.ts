@@ -40,8 +40,12 @@ const mockDb = {} as Parameters<typeof createProductService>[0];
 const sampleRecord = {
   id: "00000000-0000-0000-0000-000000000001",
   name: "Widget Pro",
+  barcode: "7501234567890",
   price: 19.99,
+  costPrice: 12.5,
   stock: 100,
+  criticalStock: 10,
+  imageKey: null,
   isActive: true,
   createdAt: "2024-01-01T00:00:00.000Z",
   updatedAt: "2024-01-01T00:00:00.000Z",
@@ -184,27 +188,37 @@ describe("createProduct", () => {
     const service = createProductService(mockDb);
     const result = await service.createProduct({
       name: "Widget Pro",
+      barcode: "7501234567890",
       price: 19.99,
       stock: 100,
     });
 
-    expect(mockRepo.create).toHaveBeenCalledWith({ name: "Widget Pro", price: 19.99, stock: 100 });
+    expect(mockRepo.create).toHaveBeenCalledWith({
+      name: "Widget Pro",
+      barcode: "7501234567890",
+      price: 19.99,
+      stock: 100,
+    });
     expect(mockCacheStore.invalidate).toHaveBeenCalledWith("products:list");
     expect(result.price).toBe(19.99);
     expect(result.stock).toBe(100);
   });
 
-  it("creates product without stock (uses default)", async () => {
-    const recordWithDefaultStock = { ...sampleRecord, stock: 0 };
-    mockRepo.create.mockResolvedValue(recordWithDefaultStock);
+  it("creates product without optional fields (uses defaults)", async () => {
+    const recordWithDefaults = { ...sampleRecord, stock: 0, costPrice: null, criticalStock: null };
+    mockRepo.create.mockResolvedValue(recordWithDefaults);
 
     const service = createProductService(mockDb);
-    const result = await service.createProduct({ name: "Widget Pro", price: 19.99 });
+    const result = await service.createProduct({
+      name: "Widget Pro",
+      barcode: "7501234567890",
+      price: 19.99,
+    });
 
     expect(mockRepo.create).toHaveBeenCalledWith({
       name: "Widget Pro",
+      barcode: "7501234567890",
       price: 19.99,
-      stock: undefined,
     });
     expect(result.stock).toBe(0);
   });

@@ -7,8 +7,12 @@ import { createProductRepository } from "./product.repository";
 const dbRow = {
   id: "00000000-0000-0000-0000-000000000001",
   name: "Widget Pro",
+  barcode: "7501234567890",
   price: "19.99",
+  costPrice: "12.50",
   stock: 100,
+  criticalStock: 10,
+  imageKey: null,
   isActive: true,
   createdAt: new Date("2024-01-01T00:00:00.000Z"),
   updatedAt: new Date("2024-01-01T00:00:00.000Z"),
@@ -140,11 +144,20 @@ describe("create", () => {
     mockInsert.mockReturnValue(makeInsertChain([dbRow]));
 
     const repo = createProductRepository(db);
-    const result = await repo.create({ name: "Widget Pro", price: 19.99, stock: 100 });
+    const result = await repo.create({
+      name: "Widget Pro",
+      barcode: "7501234567890",
+      price: 19.99,
+      stock: 100,
+    });
 
     expect(result.id).toBe(dbRow.id);
+    expect(result.barcode).toBe("7501234567890");
     expect(result.price).toBe(19.99);
+    expect(result.costPrice).toBe(12.5);
     expect(result.stock).toBe(100);
+    expect(result.criticalStock).toBe(10);
+    expect(result.imageKey).toBeNull();
   });
 
   it("uses default stock when stock is not provided", async () => {
@@ -152,7 +165,11 @@ describe("create", () => {
     mockInsert.mockReturnValue(makeInsertChain([rowWithDefaultStock]));
 
     const repo = createProductRepository(db);
-    const result = await repo.create({ name: "Widget Pro", price: 19.99 });
+    const result = await repo.create({
+      name: "Widget Pro",
+      barcode: "7501234567890",
+      price: 19.99,
+    });
 
     expect(result.stock).toBe(0);
   });

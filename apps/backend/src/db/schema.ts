@@ -65,8 +65,12 @@ export const products = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     name: varchar("name", { length: 255 }).notNull(),
+    barcode: varchar("barcode", { length: 100 }).notNull().unique(),
     price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+    costPrice: numeric("cost_price", { precision: 10, scale: 2 }),
     stock: integer("stock").notNull().default(0),
+    criticalStock: integer("critical_stock"),
+    imageKey: varchar("image_key", { length: 500 }),
     isActive: boolean("is_active").notNull().default(true),
     ...timestamps,
   },

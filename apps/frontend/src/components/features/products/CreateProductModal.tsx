@@ -20,8 +20,11 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
   const form = useForm({
     defaultValues: {
       name: "",
+      barcode: "",
       price: "" as unknown as number,
+      costPrice: "" as unknown as number | undefined,
       stock: "" as unknown as number | undefined,
+      criticalStock: "" as unknown as number | undefined,
     },
     validators: { onSubmit: createProductSchema },
     onSubmit: async ({ value }) => {
@@ -105,39 +108,91 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
           )}
         </form.Field>
 
-        <form.Field name="price">
+        <form.Field name="barcode">
           {(field) => (
             <Input
-              label="Price"
-              type="number"
+              label="Barcode"
               required
-              placeholder="0.00"
-              min={0}
-              step={0.01}
-              value={field.state.value as unknown as string}
+              placeholder="e.g. 7501234567890"
+              value={field.state.value}
               onBlur={field.handleBlur}
-              onChange={(e) => field.handleChange(e.target.value as unknown as number)}
+              onChange={(e) => field.handleChange(e.target.value)}
               error={field.state.meta.errors[0]?.message}
             />
           )}
         </form.Field>
 
-        <form.Field name="stock">
-          {(field) => (
-            <Input
-              label="Initial Stock"
-              type="number"
-              placeholder="0"
-              min={0}
-              step={1}
-              helperText="Optional — defaults to 0 if left empty."
-              value={field.state.value as unknown as string}
-              onBlur={field.handleBlur}
-              onChange={(e) => field.handleChange(e.target.value as unknown as number)}
-              error={field.state.meta.errors[0]?.message}
-            />
-          )}
-        </form.Field>
+        <div className="grid grid-cols-2 gap-4">
+          <form.Field name="price">
+            {(field) => (
+              <Input
+                label="Sale Price"
+                type="number"
+                required
+                placeholder="0.00"
+                min={0}
+                step={0.01}
+                value={field.state.value as unknown as string}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value as unknown as number)}
+                error={field.state.meta.errors[0]?.message}
+              />
+            )}
+          </form.Field>
+
+          <form.Field name="costPrice">
+            {(field) => (
+              <Input
+                label="Cost Price"
+                type="number"
+                placeholder="0.00"
+                min={0}
+                step={0.01}
+                helperText="Optional."
+                value={field.state.value as unknown as string}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value as unknown as number)}
+                error={field.state.meta.errors[0]?.message}
+              />
+            )}
+          </form.Field>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <form.Field name="stock">
+            {(field) => (
+              <Input
+                label="Initial Stock"
+                type="number"
+                placeholder="0"
+                min={0}
+                step={1}
+                helperText="Optional — defaults to 0."
+                value={field.state.value as unknown as string}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value as unknown as number)}
+                error={field.state.meta.errors[0]?.message}
+              />
+            )}
+          </form.Field>
+
+          <form.Field name="criticalStock">
+            {(field) => (
+              <Input
+                label="Critical Stock"
+                type="number"
+                placeholder="0"
+                min={0}
+                step={1}
+                helperText="Alert threshold. Optional."
+                value={field.state.value as unknown as string}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value as unknown as number)}
+                error={field.state.meta.errors[0]?.message}
+              />
+            )}
+          </form.Field>
+        </div>
       </form>
     </Modal>
   );
