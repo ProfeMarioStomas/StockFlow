@@ -1,0 +1,3 @@
+ALTER TABLE "inventory_receipts" ADD COLUMN "received_by_id" uuid NOT NULL;--> statement-breakpoint
+ALTER TABLE "inventory_receipts" ADD CONSTRAINT "inventory_receipts_received_by_id_users_id_fk" FOREIGN KEY ("received_by_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "inventory_receipts_received_by_id_idx" ON "inventory_receipts" USING btree ("received_by_id");

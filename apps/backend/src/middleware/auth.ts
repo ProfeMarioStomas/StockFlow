@@ -1,12 +1,10 @@
 import { createMiddleware } from "hono/factory";
 import { getCookie } from "hono/cookie";
-import { jwtVerify, type JWTPayload } from "jose";
-import type { AppContext } from "../types";
+import { jwtVerify } from "jose";
+import type { AppContext, AuthUser } from "../types";
 import { getConfig } from "../config";
 
-export type AuthUser = JWTPayload & {
-  sub: string;
-};
+export type { AuthUser };
 
 /**
  * Verifies the JWT access token from the httpOnly cookie.
@@ -35,10 +33,8 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
 
   try {
     const secret = new TextEncoder().encode(config.JWT_SECRET);
-    await jwtVerify(token, secret);
-    // TODO: attach user payload to context once Variables type includes it
-    // const { payload } = await jwtVerify(token, secret);
-    // c.set("user", payload as AuthUser);
+    const { payload } = await jwtVerify(token, secret);
+    c.set("user", payload as AuthUser);
   } catch {
     return c.json(
       {

@@ -1,6 +1,17 @@
 // Shared Hono context types.
 // Import these wherever Hono's generics are needed.
 
+import type { JWTPayload } from "jose";
+
+// Verified JWT payload attached to context by authMiddleware.
+// Fields match the claims signed in auth.service.ts → signJwt().
+export type AuthUser = JWTPayload & {
+  sub: string;
+  name: string;
+  email: string;
+  role: "admin" | "seller";
+};
+
 export type Bindings = {
   DATABASE_URL: string;
   JWT_SECRET: string;
@@ -9,6 +20,7 @@ export type Bindings = {
 
 export type Variables = {
   correlationId: string;
+  user: AuthUser;
 };
 
 export type AppContext = {

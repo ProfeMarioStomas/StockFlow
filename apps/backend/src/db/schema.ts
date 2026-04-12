@@ -39,9 +39,7 @@ export const users = pgTable(
     isActive: boolean("is_active").notNull().default(true),
     ...timestamps,
   },
-  (table) => [
-    index("users_is_active_idx").on(table.isActive),
-  ],
+  (table) => [index("users_is_active_idx").on(table.isActive)],
 );
 
 // ── sessions (auth — refresh token store) ────────────────────────────────────
@@ -57,9 +55,7 @@ export const sessions = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     ...timestamps,
   },
-  (table) => [
-    index("sessions_user_id_idx").on(table.userId),
-  ],
+  (table) => [index("sessions_user_id_idx").on(table.userId)],
 );
 
 // ── products ─────────────────────────────────────────────────────────────────
@@ -74,9 +70,7 @@ export const products = pgTable(
     isActive: boolean("is_active").notNull().default(true),
     ...timestamps,
   },
-  (table) => [
-    index("products_is_active_idx").on(table.isActive),
-  ],
+  (table) => [index("products_is_active_idx").on(table.isActive)],
 );
 
 // ── sales ─────────────────────────────────────────────────────────────────────
@@ -133,11 +127,15 @@ export const inventoryReceipts = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     notes: text("notes"),
+    receivedById: uuid("received_by_id")
+      .notNull()
+      .references(() => users.id),
     isActive: boolean("is_active").notNull().default(true),
     ...timestamps,
   },
   (table) => [
     index("inventory_receipts_is_active_idx").on(table.isActive),
+    index("inventory_receipts_received_by_id_idx").on(table.receivedById),
   ],
 );
 
@@ -174,7 +172,5 @@ export const systemLogs = pgTable(
     note: text("note").notNull(),
     ...timestamps,
   },
-  (table) => [
-    index("system_logs_user_id_idx").on(table.userId),
-  ],
+  (table) => [index("system_logs_user_id_idx").on(table.userId)],
 );

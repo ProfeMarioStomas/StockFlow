@@ -6,8 +6,8 @@
 
   // Non-secret env vars
   "vars": {
-    "NODE_ENV": "production"
-  }
+    "NODE_ENV": "production",
+  },
 
   // Secrets — set via: wrangler secret put <NAME>
   //   DATABASE_URL  — Neon PostgreSQL connection string

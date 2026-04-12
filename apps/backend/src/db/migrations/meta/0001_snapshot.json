@@ -1,6 +1,6 @@
 {
-  "id": "67e1c075-11c5-4f02-bc69-33204f142dad",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "35379a80-4d78-4c9a-adea-21468e07b058",
+  "prevId": "67e1c075-11c5-4f02-bc69-33204f142dad",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -123,6 +123,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "received_by_id": {
+          "name": "received_by_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
         "is_active": {
           "name": "is_active",
           "type": "boolean",
@@ -160,9 +166,34 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "inventory_receipts_received_by_id_idx": {
+          "name": "inventory_receipts_received_by_id_idx",
+          "columns": [
+            {
+              "expression": "received_by_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "inventory_receipts_received_by_id_users_id_fk": {
+          "name": "inventory_receipts_received_by_id_users_id_fk",
+          "tableFrom": "inventory_receipts",
+          "tableTo": "users",
+          "columnsFrom": ["received_by_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
