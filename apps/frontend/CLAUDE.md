@@ -4,15 +4,15 @@ React SPA built with Vite, TanStack Query, TanStack Form, Tailwind CSS, and Axio
 
 ## Stack
 
-| Layer           | Technology                   |
-| --------------- | ---------------------------- |
-| Bundler         | Vite                         |
-| UI Framework    | React 19 (TypeScript)        |
-| Server State    | TanStack Query v5            |
-| Forms           | TanStack Form v1             |
-| HTTP Client     | Axios                        |
-| Styling         | Tailwind CSS v4              |
-| Validation      | Zod v4                       |
+| Layer        | Technology            |
+| ------------ | --------------------- |
+| Bundler      | Vite                  |
+| UI Framework | React 19 (TypeScript) |
+| Server State | TanStack Query v5     |
+| Forms        | TanStack Form v1      |
+| HTTP Client  | Axios                 |
+| Styling      | Tailwind CSS v4       |
+| Validation   | Zod v4                |
 
 ## Project Structure
 
@@ -76,7 +76,7 @@ export function useCurrentUser() {
   return useQuery({
     queryKey: ["auth", "me"],
     queryFn: () => authService.me(),
-    retry: false,           // Don't retry on 401
+    retry: false, // Don't retry on 401
     staleTime: 5 * 60_000, // 5 min — avoid hammering /auth/me
   });
 }
@@ -111,6 +111,7 @@ Request → 401 received
 
 - Use a flag to avoid infinite refresh loops (only retry once per request)
 - Never implement this logic in individual service functions — only in the interceptor
+- **Always exclude auth-checking endpoints from the refresh retry** — `/auth/me` returns 401 when the user is not logged in (expected, not an expired token). If the interceptor tries to refresh on that 401, it creates an infinite loop: `LoginPage` calls `useCurrentUser()` → 401 → interceptor retries refresh → 401 → hard redirect to `/login` → `LoginPage` mounts again → loop. The exclusion list must include at minimum `/auth/refresh` and `/auth/me`.
 
 #### Rules
 
@@ -144,14 +145,14 @@ Zod v4 breaking changes — always use the new API:
 
 ```typescript
 // ❌ Zod 3 (OLD — do not use)
-z.string().email()
-z.string().uuid()
-z.string().min(1, { message: "Required" })
+z.string().email();
+z.string().uuid();
+z.string().min(1, { message: "Required" });
 
 // ✅ Zod 4 (NEW — always use this)
-z.email()
-z.uuid()
-z.string().min(1, { error: "Required" })
+z.email();
+z.uuid();
+z.string().min(1, { error: "Required" });
 ```
 
 - Use `z.infer<typeof Schema>` for TypeScript types — never define types separately
@@ -172,6 +173,7 @@ export function cn(...inputs: ClassValue[]) {
 ```
 
 Usage rules:
+
 ```typescript
 // ✅ Use cn() for conditional classes
 <div className={cn("base-class", isActive && "active-class")} />
@@ -210,6 +212,34 @@ Usage rules:
 - No prop drilling beyond 2 levels — lift to TanStack Query or context
 - Prefer composition over configuration — use children and render props over boolean flags
 - Co-locate feature components with their page, not in a global components folder
+
+### Page vs Modal responsibility
+
+- **Pages show data** — tables, reports, dashboards, read-only views
+- **Modals contain forms** — create, edit, and delete confirmations are ALWAYS in a modal, never on a separate page
+- Every CRUD feature follows this pattern: page renders the table + action buttons → button opens a modal → modal contains the TanStack Form → on submit, modal closes and the query is invalidated
+- Delete actions use a confirmation modal (never a browser `confirm()` or inline action without confirmation)
+
+### Edit modal preloading — REQUIRED pattern
+
+Edit modals **must** always receive the entity as a prop and use its fields in `defaultValues`. The parent **must** set `key={entity.id}` on the modal component:
+
+```tsx
+// ✅ CORRECT — key forces a fresh mount per entity, so useForm always
+// initializes with the right defaultValues. Never use useEffect + form.reset()
+// to sync values; that causes a flash of empty fields.
+{modal?.type === "edit" && (
+  <EditFooModal key={modal.foo.id} foo={modal.foo} open onClose={...} />
+)}
+
+// ❌ WRONG — no key means React may reuse the component instance when
+// switching between entities, leaving stale form values.
+{modal?.type === "edit" && (
+  <EditFooModal foo={modal.foo} open onClose={...} />
+)}
+```
+
+**Why `key` and not `useEffect + form.reset()`:** TanStack Form initializes `defaultValues` on mount. Calling `form.reset()` in a `useEffect` runs after the first paint and clears then reapplies values, causing a visible flash of empty fields. The `key` approach remounts the component cleanly so `useForm` gets the correct values from the start.
 
 ### Error Handling
 

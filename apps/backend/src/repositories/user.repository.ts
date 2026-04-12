@@ -81,7 +81,10 @@ export function createUserRepository(db: Database) {
     },
 
     async count(): Promise<number> {
-      const [row] = await db.select({ total: sql<number>`count(*)` }).from(users);
+      const [row] = await db
+        .select({ total: sql<number>`count(*)` })
+        .from(users)
+        .where(eq(users.isActive, true));
       return Number(row?.total ?? 0);
     },
 
@@ -91,6 +94,7 @@ export function createUserRepository(db: Database) {
       const rows = await db
         .select()
         .from(users)
+        .where(eq(users.isActive, true))
         .orderBy(desc(users.createdAt))
         .limit(limit)
         .offset(offset);

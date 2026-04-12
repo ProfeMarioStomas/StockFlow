@@ -191,7 +191,7 @@ describe("softDelete", () => {
 });
 
 describe("count", () => {
-  it("returns total count of all users", async () => {
+  it("returns count of active users only", async () => {
     mockSelect.mockReturnValue(makeSelectChain([{ total: 4 }] as never[]));
 
     const repo = createUserRepository(db);
@@ -199,10 +199,19 @@ describe("count", () => {
 
     expect(result).toBe(4);
   });
+
+  it("returns 0 when no active users exist", async () => {
+    mockSelect.mockReturnValue(makeSelectChain([{ total: 0 }] as never[]));
+
+    const repo = createUserRepository(db);
+    const result = await repo.count();
+
+    expect(result).toBe(0);
+  });
 });
 
 describe("findPage", () => {
-  it("returns paginated records", async () => {
+  it("returns paginated active records", async () => {
     mockSelect.mockReturnValue(makePaginatedSelectChain([dbRow]));
 
     const repo = createUserRepository(db);
@@ -211,9 +220,10 @@ describe("findPage", () => {
     expect(result).toHaveLength(1);
     expect(result[0]!.id).toBe(dbRow.id);
     expect(result[0]!.email).toBe(dbRow.email);
+    expect(result[0]!.isActive).toBe(true);
   });
 
-  it("returns empty array when no records match", async () => {
+  it("returns empty array when no active records match", async () => {
     mockSelect.mockReturnValue(makePaginatedSelectChain([]));
 
     const repo = createUserRepository(db);
