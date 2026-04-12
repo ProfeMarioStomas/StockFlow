@@ -88,8 +88,16 @@ export const ProductResponseSchema = z
   })
   .openapi("ProductResponse");
 
+export const UploadImageResponseSchema = z
+  .object({
+    key: z.string().openapi({ example: "products/abc123.webp" }),
+    url: z.url().openapi({ example: "https://pub-xxx.r2.dev/products/abc123.webp" }),
+  })
+  .openapi("UploadImageResponse");
+
 // ── Inferred types ────────────────────────────────────────────────────────────
 
 export type CreateProductInput = z.infer<typeof CreateProductSchema>;
 export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
 export type ProductResponse = z.infer<typeof ProductResponseSchema>;
+export type UploadImageResponse = z.infer<typeof UploadImageResponseSchema>;

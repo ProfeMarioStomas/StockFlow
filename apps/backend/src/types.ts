@@ -16,6 +16,9 @@ export type Bindings = {
   DATABASE_URL: string;
   JWT_SECRET: string;
   NODE_ENV: "development" | "test" | "production";
+  R2_PUBLIC_URL: string;
+  // R2 service binding — not a string, so handled directly in controllers
+  BUCKET: R2Bucket;
 };
 
 export type Variables = {

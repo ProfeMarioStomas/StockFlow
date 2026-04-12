@@ -18,11 +18,17 @@ export const productService = {
       })
       .then((r) => r.data),
 
-  createProduct: (data: CreateProductFormValues) =>
+  createProduct: (data: CreateProductFormValues & { imageKey?: string }) =>
     api.post<ProductResponse>("/products", data).then((r) => r.data),
 
-  updateProduct: (id: string, data: UpdateProductFormValues) =>
+  updateProduct: (id: string, data: UpdateProductFormValues & { imageKey?: string }) =>
     api.put<ProductResponse>(`/products/${id}`, data).then((r) => r.data),
 
   deleteProduct: (id: string) => api.delete<void>(`/products/${id}`),
+
+  uploadImage: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post<{ key: string; url: string }>("/products/images", formData).then((r) => r.data);
+  },
 };

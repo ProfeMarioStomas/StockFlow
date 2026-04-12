@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { HTTPException } from "hono/http-exception";
 import { getConfig } from "../config";
 import { createDb } from "../db/client";
 import { throwValidationError } from "../lib/validation";
@@ -11,6 +12,7 @@ import {
   CreateProductSchema,
   ProductResponseSchema,
   UpdateProductSchema,
+  UploadImageResponseSchema,
 } from "../models/product.model";
 import { createProductService } from "../services/product.service";
 import type { AppContext } from "../types";
@@ -53,6 +55,34 @@ export const productsRouter = new OpenAPIHono<AppContext>({
 });
 
 // ── Route definitions ─────────────────────────────────────────────────────────
+
+// NOTE: /images must be declared before /:id to avoid route conflict.
+const uploadImageRoute = createRoute({
+  method: "post",
+  path: "/images",
+  tags: ["Products"],
+  summary: "Upload a product image to R2",
+  request: {
+    body: {
+      content: {
+        "multipart/form-data": {
+          schema: z.object({
+            file: z.any().openapi({ type: "string", format: "binary" }),
+          }),
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    201: {
+      content: { "application/json": { schema: UploadImageResponseSchema } },
+      description: "Image uploaded — returns key and public URL",
+    },
+    400: errorBody("Unsupported file type"),
+    413: errorBody("File too large"),
+  },
+});
 
 const listProductsRoute = createRoute({
   method: "get",
@@ -152,6 +182,22 @@ const deleteProductRoute = createRoute({
 });
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
+
+productsRouter.openapi(uploadImageRoute, async (c) => {
+  const body = await c.req.parseBody();
+  const file = body.file;
+
+  if (!(file instanceof File)) {
+    throw new HTTPException(400, { message: "file field is required" });
+  }
+
+  const config = getConfig(c.env);
+  const db = createDb(config.DATABASE_URL);
+  const service = createProductService(db);
+  // c.env.BUCKET is an R2 service binding — not accessible via getConfig()
+  const result = await service.uploadProductImage(c.env.BUCKET, file, config.R2_PUBLIC_URL);
+  return c.json(result, 201);
+});
 
 productsRouter.openapi(listProductsRoute, async (c) => {
   const { isActive, page, pageSize } = c.req.valid("query");

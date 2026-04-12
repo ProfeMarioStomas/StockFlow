@@ -16,9 +16,25 @@ interface EditProductModalProps {
   onClose: () => void;
 }
 
+const R2_BASE_URL = "https://pub-f0bcf28b115849ffbbb6ac15fb70a6c2.r2.dev";
+
 export function EditProductModal({ product, open, onClose }: EditProductModalProps) {
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
+    if (file) {
+      setImagePreview(URL.createObjectURL(file));
+    } else {
+      setImagePreview(null);
+    }
+  }
+
+  const currentImageUrl = product.imageKey ? `${R2_BASE_URL}/${product.imageKey}` : null;
 
   const form = useForm({
     defaultValues: {
@@ -33,7 +49,12 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
     onSubmit: async ({ value }) => {
       setServerError(null);
       try {
-        await productService.updateProduct(product.id, value);
+        let imageKey: string | undefined;
+        if (imageFile) {
+          const uploaded = await productService.uploadImage(imageFile);
+          imageKey = uploaded.key;
+        }
+        await productService.updateProduct(product.id, { ...value, imageKey });
         await queryClient.invalidateQueries({ queryKey: ["products"] });
         onClose();
       } catch (err) {
@@ -185,6 +206,25 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
             </div>
           )}
         </form.Field>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-[var(--color-foreground)]">
+            Product Image
+          </label>
+          {(imagePreview ?? currentImageUrl) && (
+            <img
+              src={imagePreview ?? currentImageUrl!}
+              alt="Product"
+              className="h-24 w-24 rounded-[var(--radius-md)] object-cover"
+            />
+          )}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleImageChange}
+            className="text-sm text-[var(--color-muted-foreground)] file:mr-3 file:cursor-pointer file:rounded-[var(--radius-sm)] file:border file:border-[var(--color-input)] file:bg-[var(--color-secondary)] file:px-3 file:py-1 file:text-sm file:font-medium file:text-[var(--color-foreground)] hover:file:bg-[var(--color-secondary-hover)]"
+          />
+        </div>
       </form>
     </Modal>
   );

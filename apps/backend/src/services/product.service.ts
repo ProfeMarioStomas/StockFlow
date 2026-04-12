@@ -6,8 +6,16 @@ import type {
   CreateProductInput,
   ProductResponse,
   UpdateProductInput,
+  UploadImageResponse,
 } from "../models/product.model";
 import { createProductRepository } from "../repositories/product.repository";
+
+const ALLOWED_MIME_TYPES: Record<string, string> = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+};
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 const TTL_5MIN = 5 * 60 * 1000;
 
@@ -108,6 +116,31 @@ export function createProductService(db: Database) {
       await repo.softDelete(id);
       cache.invalidate(`products:${id}`);
       cache.invalidate("products:list");
+    },
+
+    async uploadProductImage(
+      bucket: R2Bucket,
+      file: File,
+      r2BaseUrl: string,
+    ): Promise<UploadImageResponse> {
+      const ext = ALLOWED_MIME_TYPES[file.type];
+      if (!ext) {
+        throw new HTTPException(400, {
+          message: "Unsupported file type. Allowed: JPEG, PNG, WebP.",
+        });
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        throw new HTTPException(413, { message: "File too large. Maximum size is 5 MB." });
+      }
+
+      const key = `products/${crypto.randomUUID()}${ext}`;
+      await bucket.put(key, await file.arrayBuffer(), {
+        httpMetadata: { contentType: file.type },
+      });
+
+      const baseUrl = r2BaseUrl.replace(/\/$/, "");
+      return { key, url: `${baseUrl}/${key}` };
     },
   };
 }

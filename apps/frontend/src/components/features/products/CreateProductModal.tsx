@@ -16,6 +16,18 @@ interface CreateProductModalProps {
 export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
+    if (file) {
+      setImagePreview(URL.createObjectURL(file));
+    } else {
+      setImagePreview(null);
+    }
+  }
 
   const form = useForm({
     defaultValues: {
@@ -30,7 +42,12 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
     onSubmit: async ({ value }) => {
       setServerError(null);
       try {
-        await productService.createProduct(value);
+        let imageKey: string | undefined;
+        if (imageFile) {
+          const uploaded = await productService.uploadImage(imageFile);
+          imageKey = uploaded.key;
+        }
+        await productService.createProduct({ ...value, imageKey });
         await queryClient.invalidateQueries({ queryKey: ["products"] });
         handleClose();
       } catch (err) {
@@ -45,6 +62,8 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
   function handleClose() {
     form.reset();
     setServerError(null);
+    setImageFile(null);
+    setImagePreview(null);
     onClose();
   }
 
@@ -192,6 +211,28 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
               />
             )}
           </form.Field>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-[var(--color-foreground)]">
+            Product Image
+            <span className="ml-1 text-[var(--color-muted-foreground)] font-normal">
+              — optional
+            </span>
+          </label>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleImageChange}
+            className="text-sm text-[var(--color-muted-foreground)] file:mr-3 file:cursor-pointer file:rounded-[var(--radius-sm)] file:border file:border-[var(--color-input)] file:bg-[var(--color-secondary)] file:px-3 file:py-1 file:text-sm file:font-medium file:text-[var(--color-foreground)] hover:file:bg-[var(--color-secondary-hover)]"
+          />
+          {imagePreview && (
+            <img
+              src={imagePreview}
+              alt="Preview"
+              className="mt-1 h-24 w-24 rounded-[var(--radius-md)] object-cover"
+            />
+          )}
         </div>
       </form>
     </Modal>
