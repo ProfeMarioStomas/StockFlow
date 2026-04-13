@@ -25,17 +25,17 @@ const { mockRepo, mockCacheStore } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../repositories/sale.repository", () => ({
+vi.mock("../../repositories/sale.repository", () => ({
   createSaleRepository: () => mockRepo,
 }));
 
-vi.mock("../lib/cache", () => ({
+vi.mock("../../lib/cache", () => ({
   cache: mockCacheStore,
 }));
 
 // ── Module under test (imported AFTER mocks) ──────────────────────────────────
 
-import { createSaleService } from "./sale.service";
+import { createSaleService } from "../../services/sale.service";
 
 // ── Test fixtures ─────────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateOpaqueToken, hashToken, signJwt, verifyJwt } from "./token";
+import { generateOpaqueToken, hashToken, signJwt, verifyJwt } from "../../lib/token";
 
 const TEST_SECRET = "test-secret-key-that-is-at-least-32-chars-long";
 

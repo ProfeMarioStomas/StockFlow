@@ -22,23 +22,23 @@ const { mockRepo, mockCacheStore } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../repositories/user.repository", () => ({
+vi.mock("../../repositories/user.repository", () => ({
   createUserRepository: () => mockRepo,
 }));
 
-vi.mock("../lib/cache", () => ({
+vi.mock("../../lib/cache", () => ({
   cache: mockCacheStore,
 }));
 
-vi.mock("../lib/password", () => ({
+vi.mock("../../lib/password", () => ({
   hashPassword: vi.fn().mockResolvedValue("salt:hash"),
   verifyPassword: vi.fn().mockResolvedValue(false),
 }));
 
 // ── Module under test (imported AFTER mocks) ──────────────────────────────────
 
-import { verifyPassword } from "../lib/password";
-import { createUserService } from "./user.service";
+import { verifyPassword } from "../../lib/password";
+import { createUserService } from "../../services/user.service";
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
 

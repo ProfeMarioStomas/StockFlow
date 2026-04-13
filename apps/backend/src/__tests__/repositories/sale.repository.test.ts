@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Database } from "../db/client";
-import { createInventoryReceiptRepository } from "./inventory-receipt.repository";
+import type { Database } from "../../db/client";
+import { createSaleRepository } from "../../repositories/sale.repository";
 
 // ── DB row fixtures ───────────────────────────────────────────────────────────
 
-const receiptRow = {
+const saleRow = {
   id: "00000000-0000-0000-0000-000000000001",
-  notes: "Lote A",
-  receivedById: "00000000-0000-0000-0000-000000000099",
+  totalAmount: "19.98",
+  paymentMethod: "cash" as const,
+  sellerId: "00000000-0000-0000-0000-000000000099",
   isActive: true,
   createdAt: new Date("2024-01-01T00:00:00.000Z"),
   updatedAt: new Date("2024-01-01T00:00:00.000Z"),
@@ -15,9 +16,10 @@ const receiptRow = {
 
 const detailRow = {
   id: "00000000-0000-0000-0000-000000000002",
-  receiptId: "00000000-0000-0000-0000-000000000001",
+  saleId: "00000000-0000-0000-0000-000000000001",
   productId: "00000000-0000-0000-0000-000000000003",
-  quantity: 10,
+  quantity: 2,
+  unitPrice: "9.99",
   createdAt: new Date("2024-01-01T00:00:00.000Z"),
   updatedAt: new Date("2024-01-01T00:00:00.000Z"),
 };
@@ -70,43 +72,42 @@ beforeEach(() => {
 // ── findAll ───────────────────────────────────────────────────────────────────
 
 describe("findAll", () => {
-  it("returns all receipts mapped to domain records", async () => {
-    mockSelect.mockReturnValue(makeSelectChain([receiptRow]));
+  it("returns all sales mapped to domain records", async () => {
+    mockSelect.mockReturnValue(makeSelectChain([saleRow]));
 
-    const repo = createInventoryReceiptRepository(db);
+    const repo = createSaleRepository(db);
     const result = await repo.findAll();
 
     expect(result).toHaveLength(1);
-    expect(result[0]!.id).toBe(receiptRow.id);
-    expect(result[0]!.notes).toBe("Lote A");
-    expect(result[0]!.receivedById).toBe(receiptRow.receivedById);
+    expect(result[0]!.id).toBe(saleRow.id);
+    expect(result[0]!.totalAmount).toBe(19.98);
     expect(result[0]!.createdAt).toBe("2024-01-01T00:00:00.000Z");
   });
 
-  it("returns empty array when no receipts exist", async () => {
+  it("returns empty array when no sales exist", async () => {
     mockSelect.mockReturnValue(makeSelectChain([]));
 
-    const repo = createInventoryReceiptRepository(db);
+    const repo = createSaleRepository(db);
     const result = await repo.findAll();
 
     expect(result).toHaveLength(0);
   });
 
   it("applies isActive filter when provided", async () => {
-    const chain = makeSelectChain([receiptRow]);
+    const chain = makeSelectChain([saleRow]);
     mockSelect.mockReturnValue(chain);
 
-    const repo = createInventoryReceiptRepository(db);
+    const repo = createSaleRepository(db);
     await repo.findAll({ isActive: true });
 
     expect(chain.from().where).toHaveBeenCalled();
   });
 
-  it("returns only inactive receipts when isActive=false filter is applied", async () => {
-    const inactiveRow = { ...receiptRow, isActive: false };
+  it("returns only inactive sales when isActive=false filter is applied", async () => {
+    const inactiveRow = { ...saleRow, isActive: false };
     mockSelect.mockReturnValue(makeSelectChain([inactiveRow]));
 
-    const repo = createInventoryReceiptRepository(db);
+    const repo = createSaleRepository(db);
     const result = await repo.findAll({ isActive: false });
 
     expect(result).toHaveLength(1);
@@ -114,76 +115,76 @@ describe("findAll", () => {
   });
 });
 
-// ── findById ──────────────────────────────────────────────────────────────────
+// ── findById ─────────────────────────────────────────────────────────────────
 
 describe("findById", () => {
-  it("returns mapped record when receipt exists", async () => {
-    mockSelect.mockReturnValue(makeSelectChain([receiptRow]));
+  it("returns mapped record when sale exists", async () => {
+    mockSelect.mockReturnValue(makeSelectChain([saleRow]));
 
-    const repo = createInventoryReceiptRepository(db);
-    const result = await repo.findById(receiptRow.id);
+    const repo = createSaleRepository(db);
+    const result = await repo.findById(saleRow.id);
 
     expect(result).toBeDefined();
-    expect(result!.id).toBe(receiptRow.id);
-    expect(result!.receivedById).toBe(receiptRow.receivedById);
+    expect(result!.id).toBe(saleRow.id);
+    expect(result!.totalAmount).toBe(19.98);
   });
 
-  it("returns undefined when receipt does not exist", async () => {
+  it("returns undefined when sale does not exist", async () => {
     mockSelect.mockReturnValue(makeSelectChain([]));
 
-    const repo = createInventoryReceiptRepository(db);
+    const repo = createSaleRepository(db);
     const result = await repo.findById("non-existent");
 
     expect(result).toBeUndefined();
   });
 });
 
-// ── findDetailsByReceiptId ────────────────────────────────────────────────────
+// ── findDetailsBySaleId ───────────────────────────────────────────────────────
 
-describe("findDetailsByReceiptId", () => {
-  it("returns mapped detail records for a receipt", async () => {
+describe("findDetailsBySaleId", () => {
+  it("returns mapped detail records for a sale", async () => {
     mockSelect.mockReturnValue(makeSelectChain([detailRow]));
 
-    const repo = createInventoryReceiptRepository(db);
-    const result = await repo.findDetailsByReceiptId(detailRow.receiptId);
+    const repo = createSaleRepository(db);
+    const result = await repo.findDetailsBySaleId(detailRow.saleId);
 
     expect(result).toHaveLength(1);
     expect(result[0]!.id).toBe(detailRow.id);
-    expect(result[0]!.quantity).toBe(10);
+    expect(result[0]!.unitPrice).toBe(9.99);
     expect(result[0]!.createdAt).toBe("2024-01-01T00:00:00.000Z");
   });
 
-  it("returns empty array when receipt has no details", async () => {
+  it("returns empty array when sale has no details", async () => {
     mockSelect.mockReturnValue(makeSelectChain([]));
 
-    const repo = createInventoryReceiptRepository(db);
-    const result = await repo.findDetailsByReceiptId("non-existent");
+    const repo = createSaleRepository(db);
+    const result = await repo.findDetailsBySaleId("non-existent");
 
     expect(result).toHaveLength(0);
   });
 });
 
-// ── findDetailsByReceiptIds ───────────────────────────────────────────────────
+// ── findDetailsBySaleIds ──────────────────────────────────────────────────────
 
-describe("findDetailsByReceiptIds", () => {
-  it("returns details for multiple receipts using inArray", async () => {
+describe("findDetailsBySaleIds", () => {
+  it("returns details for multiple sales using inArray", async () => {
     const detail2 = {
       ...detailRow,
       id: "00000000-0000-0000-0000-000000000004",
-      receiptId: "00000000-0000-0000-0000-000000000005",
+      saleId: "00000000-0000-0000-0000-000000000005",
     };
     mockSelect.mockReturnValue(makeSelectChain([detailRow, detail2]));
 
-    const repo = createInventoryReceiptRepository(db);
-    const result = await repo.findDetailsByReceiptIds([receiptRow.id, detail2.receiptId]);
+    const repo = createSaleRepository(db);
+    const result = await repo.findDetailsBySaleIds([saleRow.id, detail2.saleId]);
 
     expect(result).toHaveLength(2);
-    expect(result[0]!.quantity).toBe(10);
+    expect(result[0]!.unitPrice).toBe(9.99);
   });
 
   it("returns empty array when ids array is empty (skips DB call)", async () => {
-    const repo = createInventoryReceiptRepository(db);
-    const result = await repo.findDetailsByReceiptIds([]);
+    const repo = createSaleRepository(db);
+    const result = await repo.findDetailsBySaleIds([]);
 
     expect(result).toHaveLength(0);
     expect(mockSelect).not.toHaveBeenCalled();
@@ -196,29 +197,29 @@ describe("findDetailById", () => {
   it("returns mapped detail when found", async () => {
     mockSelect.mockReturnValue(makeSelectChain([detailRow]));
 
-    const repo = createInventoryReceiptRepository(db);
-    const result = await repo.findDetailById(detailRow.receiptId, detailRow.id);
+    const repo = createSaleRepository(db);
+    const result = await repo.findDetailById(detailRow.saleId, detailRow.id);
 
     expect(result).toBeDefined();
     expect(result!.id).toBe(detailRow.id);
-    expect(result!.quantity).toBe(10);
+    expect(result!.unitPrice).toBe(9.99);
   });
 
   it("returns undefined when detail does not exist", async () => {
     mockSelect.mockReturnValue(makeSelectChain([]));
 
-    const repo = createInventoryReceiptRepository(db);
+    const repo = createSaleRepository(db);
     const result = await repo.findDetailById("non-existent", "non-existent");
 
     expect(result).toBeUndefined();
   });
 
-  it("applies compound AND condition (detailId AND receiptId)", async () => {
+  it("applies compound AND condition (detailId AND saleId)", async () => {
     const chain = makeSelectChain([detailRow]);
     mockSelect.mockReturnValue(chain);
 
-    const repo = createInventoryReceiptRepository(db);
-    await repo.findDetailById(detailRow.receiptId, detailRow.id);
+    const repo = createSaleRepository(db);
+    await repo.findDetailById(detailRow.saleId, detailRow.id);
 
     expect(chain.from().where).toHaveBeenCalled();
   });
@@ -227,23 +228,23 @@ describe("findDetailById", () => {
 // ── updateHeader ──────────────────────────────────────────────────────────────
 
 describe("updateHeader", () => {
-  it("updates notes and returns the modified record", async () => {
-    const updatedRow = { ...receiptRow, notes: "Lote B" };
+  it("updates paymentMethod and returns the modified record", async () => {
+    const updatedRow = { ...saleRow, paymentMethod: "card" as const };
     mockUpdate.mockReturnValue(makeUpdateChain([updatedRow]));
 
-    const repo = createInventoryReceiptRepository(db);
-    const result = await repo.updateHeader(receiptRow.id, { notes: "Lote B" });
+    const repo = createSaleRepository(db);
+    const result = await repo.updateHeader(saleRow.id, { paymentMethod: "card" });
 
     expect(result).toBeDefined();
-    expect(result!.notes).toBe("Lote B");
+    expect(result!.paymentMethod).toBe("card");
   });
 
   it("updates isActive and returns the modified record", async () => {
-    const updatedRow = { ...receiptRow, isActive: false };
+    const updatedRow = { ...saleRow, isActive: false };
     mockUpdate.mockReturnValue(makeUpdateChain([updatedRow]));
 
-    const repo = createInventoryReceiptRepository(db);
-    const result = await repo.updateHeader(receiptRow.id, { isActive: false });
+    const repo = createSaleRepository(db);
+    const result = await repo.updateHeader(saleRow.id, { isActive: false });
 
     expect(result).toBeDefined();
     expect(result!.isActive).toBe(false);
@@ -252,8 +253,8 @@ describe("updateHeader", () => {
   it("returns undefined when no row was matched", async () => {
     mockUpdate.mockReturnValue(makeUpdateChain([]));
 
-    const repo = createInventoryReceiptRepository(db);
-    const result = await repo.updateHeader("bad-id", { notes: "X" });
+    const repo = createSaleRepository(db);
+    const result = await repo.updateHeader("bad-id", { paymentMethod: "card" });
 
     expect(result).toBeUndefined();
   });
@@ -263,21 +264,56 @@ describe("updateHeader", () => {
 
 describe("updateDetail", () => {
   it("updates quantity and returns the modified detail", async () => {
-    const updatedDetailRow = { ...detailRow, quantity: 15 };
+    const updatedDetailRow = { ...detailRow, quantity: 5 };
     mockUpdate.mockReturnValue(makeUpdateChain([updatedDetailRow]));
 
-    const repo = createInventoryReceiptRepository(db);
-    const result = await repo.updateDetail(detailRow.id, { quantity: 15 });
+    const repo = createSaleRepository(db);
+    const result = await repo.updateDetail(detailRow.id, { quantity: 5 });
 
     expect(result).toBeDefined();
-    expect(result!.quantity).toBe(15);
+    expect(result!.quantity).toBe(5);
+  });
+
+  it("updates unitPrice converting to string for DB and parsing back on return", async () => {
+    const updatedDetailRow = { ...detailRow, unitPrice: "12.99" };
+    mockUpdate.mockReturnValue(makeUpdateChain([updatedDetailRow]));
+
+    const repo = createSaleRepository(db);
+    const result = await repo.updateDetail(detailRow.id, { unitPrice: 12.99 });
+
+    expect(result).toBeDefined();
+    expect(result!.unitPrice).toBe(12.99);
   });
 
   it("returns undefined when no row was matched", async () => {
     mockUpdate.mockReturnValue(makeUpdateChain([]));
 
-    const repo = createInventoryReceiptRepository(db);
+    const repo = createSaleRepository(db);
     const result = await repo.updateDetail("bad-id", { quantity: 3 });
+
+    expect(result).toBeUndefined();
+  });
+});
+
+// ── updateTotalAmount ─────────────────────────────────────────────────────────
+
+describe("updateTotalAmount", () => {
+  it("updates totalAmount and returns the mapped record", async () => {
+    const updatedRow = { ...saleRow, totalAmount: "49.95" };
+    mockUpdate.mockReturnValue(makeUpdateChain([updatedRow]));
+
+    const repo = createSaleRepository(db);
+    const result = await repo.updateTotalAmount(saleRow.id, 49.95);
+
+    expect(result).toBeDefined();
+    expect(result!.totalAmount).toBe(49.95);
+  });
+
+  it("returns undefined when no row was matched", async () => {
+    mockUpdate.mockReturnValue(makeUpdateChain([]));
+
+    const repo = createSaleRepository(db);
+    const result = await repo.updateTotalAmount("bad-id", 10);
 
     expect(result).toBeUndefined();
   });
@@ -287,11 +323,11 @@ describe("updateDetail", () => {
 
 describe("softDelete", () => {
   it("sets isActive to false and returns the updated record", async () => {
-    const deletedRow = { ...receiptRow, isActive: false };
+    const deletedRow = { ...saleRow, isActive: false };
     mockUpdate.mockReturnValue(makeUpdateChain([deletedRow]));
 
-    const repo = createInventoryReceiptRepository(db);
-    const result = await repo.softDelete(receiptRow.id);
+    const repo = createSaleRepository(db);
+    const result = await repo.softDelete(saleRow.id);
 
     expect(result).toBeDefined();
     expect(result!.isActive).toBe(false);
@@ -300,7 +336,7 @@ describe("softDelete", () => {
   it("returns undefined when no row was matched", async () => {
     mockUpdate.mockReturnValue(makeUpdateChain([]));
 
-    const repo = createInventoryReceiptRepository(db);
+    const repo = createSaleRepository(db);
     const result = await repo.softDelete("bad-id");
 
     expect(result).toBeUndefined();
@@ -310,43 +346,43 @@ describe("softDelete", () => {
 // ── count ─────────────────────────────────────────────────────────────────────
 
 describe("count", () => {
-  it("returns total count of all receipts", async () => {
-    mockSelect.mockReturnValue(makeSelectChain([{ total: 3 }]));
+  it("returns total count of all sales", async () => {
+    mockSelect.mockReturnValue(makeSelectChain([{ total: 7 }]));
 
-    const repo = createInventoryReceiptRepository(db);
+    const repo = createSaleRepository(db);
     const result = await repo.count();
 
-    expect(result).toBe(3);
+    expect(result).toBe(7);
   });
 
   it("returns filtered count when isActive filter is provided", async () => {
-    mockSelect.mockReturnValue(makeSelectChain([{ total: 2 }]));
+    mockSelect.mockReturnValue(makeSelectChain([{ total: 4 }]));
 
-    const repo = createInventoryReceiptRepository(db);
+    const repo = createSaleRepository(db);
     const result = await repo.count({ isActive: true });
 
-    expect(result).toBe(2);
+    expect(result).toBe(4);
   });
 });
 
 // ── findPage ──────────────────────────────────────────────────────────────────
 
 describe("findPage", () => {
-  it("returns paginated receipt records without filter", async () => {
-    mockSelect.mockReturnValue(makePaginatedSelectChain([receiptRow]));
+  it("returns paginated sale records without filter", async () => {
+    mockSelect.mockReturnValue(makePaginatedSelectChain([saleRow]));
 
-    const repo = createInventoryReceiptRepository(db);
+    const repo = createSaleRepository(db);
     const result = await repo.findPage(undefined, { limit: 20, offset: 0 });
 
     expect(result).toHaveLength(1);
-    expect(result[0]!.id).toBe(receiptRow.id);
-    expect(result[0]!.receivedById).toBe(receiptRow.receivedById);
+    expect(result[0]!.id).toBe(saleRow.id);
+    expect(result[0]!.totalAmount).toBe(19.98);
   });
 
   it("applies isActive filter when provided", async () => {
-    mockSelect.mockReturnValue(makePaginatedSelectChain([receiptRow]));
+    mockSelect.mockReturnValue(makePaginatedSelectChain([saleRow]));
 
-    const repo = createInventoryReceiptRepository(db);
+    const repo = createSaleRepository(db);
     const result = await repo.findPage({ isActive: true }, { limit: 10, offset: 0 });
 
     expect(result).toHaveLength(1);
@@ -355,7 +391,7 @@ describe("findPage", () => {
   it("returns empty array when no records match", async () => {
     mockSelect.mockReturnValue(makePaginatedSelectChain([]));
 
-    const repo = createInventoryReceiptRepository(db);
+    const repo = createSaleRepository(db);
     const result = await repo.findPage(undefined, { limit: 20, offset: 0 });
 
     expect(result).toHaveLength(0);

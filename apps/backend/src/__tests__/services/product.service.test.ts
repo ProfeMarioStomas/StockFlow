@@ -21,17 +21,17 @@ const { mockRepo, mockCacheStore } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../repositories/product.repository", () => ({
+vi.mock("../../repositories/product.repository", () => ({
   createProductRepository: () => mockRepo,
 }));
 
-vi.mock("../lib/cache", () => ({
+vi.mock("../../lib/cache", () => ({
   cache: mockCacheStore,
 }));
 
 // ── Module under test (imported AFTER mocks) ──────────────────────────────────
 
-import { createProductService } from "./product.service";
+import { createProductService } from "../../services/product.service";
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
 

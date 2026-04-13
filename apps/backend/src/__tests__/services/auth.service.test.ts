@@ -20,19 +20,19 @@ const { mockUserRepo, mockSessionRepo } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../repositories/user.repository", () => ({
+vi.mock("../../repositories/user.repository", () => ({
   createUserRepository: () => mockUserRepo,
 }));
 
-vi.mock("../repositories/session.repository", () => ({
+vi.mock("../../repositories/session.repository", () => ({
   createSessionRepository: () => mockSessionRepo,
 }));
 
-vi.mock("../lib/password", () => ({
+vi.mock("../../lib/password", () => ({
   verifyPassword: vi.fn(),
 }));
 
-vi.mock("../lib/token", () => ({
+vi.mock("../../lib/token", () => ({
   generateOpaqueToken: vi.fn().mockReturnValue("raw-refresh-token"),
   hashToken: vi.fn().mockResolvedValue("hashed-token"),
   signJwt: vi.fn().mockResolvedValue("signed.jwt.token"),
@@ -40,8 +40,8 @@ vi.mock("../lib/token", () => ({
 
 // ── Module under test (imported AFTER mocks) ──────────────────────────────────
 
-import { verifyPassword } from "../lib/password";
-import { createAuthService } from "./auth.service";
+import { verifyPassword } from "../../lib/password";
+import { createAuthService } from "../../services/auth.service";
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 

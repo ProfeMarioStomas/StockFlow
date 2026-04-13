@@ -7,6 +7,13 @@ import type {
 import { api } from "./api";
 
 export const productService = {
+  listAll: (isActive?: boolean) =>
+    api
+      .get<ProductResponse[]>("/products/all", {
+        params: isActive !== undefined ? { isActive: String(isActive) } : undefined,
+      })
+      .then((r) => r.data),
+
   listProducts: (page: number, pageSize: number, isActive?: boolean) =>
     api
       .get<PaginatedProductsResponse>("/products", {

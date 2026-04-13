@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hashPassword, verifyPassword } from "./password";
+import { hashPassword, verifyPassword } from "../../lib/password";
 
 describe("hashPassword", () => {
   it("returns a string in {salt}:{hash} format", async () => {

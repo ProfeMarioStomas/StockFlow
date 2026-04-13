@@ -24,17 +24,17 @@ const { mockRepo, mockCacheStore } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../repositories/inventory-receipt.repository", () => ({
+vi.mock("../../repositories/inventory-receipt.repository", () => ({
   createInventoryReceiptRepository: () => mockRepo,
 }));
 
-vi.mock("../lib/cache", () => ({
+vi.mock("../../lib/cache", () => ({
   cache: mockCacheStore,
 }));
 
 // ── Module under test (imported AFTER mocks) ──────────────────────────────────
 
-import { createInventoryReceiptService } from "./inventory-receipt.service";
+import { createInventoryReceiptService } from "../../services/inventory-receipt.service";
 
 // ── Test fixtures ─────────────────────────────────────────────────────────────
 

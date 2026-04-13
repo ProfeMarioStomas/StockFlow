@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Database } from "../db/client";
-import { createSystemLogRepository } from "./system-log.repository";
+import type { Database } from "../../db/client";
+import { createSystemLogRepository } from "../../repositories/system-log.repository";
 
 // ── DB row fixture ────────────────────────────────────────────────────────────
 

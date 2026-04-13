@@ -234,6 +234,47 @@ app.get("/api/docs", swaggerUI({ url: "/api/docs/spec" }));
 - Secrets via `wrangler.toml` and `c.env` — accessed only through `config/index.ts`
 - Neon uses HTTP driver (`@neondatabase/serverless`) — not standard TCP pg connection
 
+### R2 Object Storage
+
+**Bucket**: `stockflow` — binding name `BUCKET` — public URL `https://pub-f0bcf28b115849ffbbb6ac15fb70a6c2.r2.dev`
+
+#### Configuration
+
+- R2 binding declared in `wrangler.jsonc` under `r2_buckets`
+- Public base URL stored as a non-secret var `R2_PUBLIC_URL` in `wrangler.jsonc` and validated in `src/config/index.ts`
+- `BUCKET` is an `R2Bucket` service binding — it is **not** a string and cannot go through `getConfig()`. Access it directly from `c.env.BUCKET` in the controller only, with a comment explaining why
+
+#### Upload endpoint pattern
+
+- Route: `POST /api/v1/<resource>/images` — must be declared **before** `/:id` routes to avoid conflict
+- Request: `multipart/form-data` with a `file` field — parse with `c.req.parseBody()`
+- Validate in the service (not the controller): allowed MIME types, max file size
+- Key format: `<resource>/{crypto.randomUUID()}.{ext}` where `ext` is derived from the MIME type
+- Upload with `bucket.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } })`
+- Return `{ key, url }` where `url = \`${r2BaseUrl}/${key}\``
+- Pass `r2BaseUrl` as a parameter to the service method — never access `c.env` inside a service
+
+```typescript
+// ✅ Correct layering — controller reads c.env, passes to service
+const result = await service.uploadImage(c.env.BUCKET, file, config.R2_PUBLIC_URL);
+
+// ❌ Wrong — service must never import or access c.env
+```
+
+#### Serving images
+
+Images are served directly from R2's public URL — no Worker proxy needed:
+```
+https://pub-f0bcf28b115849ffbbb6ac15fb70a6c2.r2.dev/<key>
+```
+
+#### Upload-then-save flow (Option A)
+
+The frontend uploads the file first, receives `{ key }`, then includes `imageKey` in the
+create/update request. If the entity save fails, the uploaded object becomes orphaned in R2
+(acceptable — clean up with an R2 lifecycle rule if needed). Never try to roll back R2 uploads
+on application errors.
+
 ### Database Patterns
 
 - All SQL uses Drizzle ORM — never raw string interpolation
@@ -349,6 +390,6 @@ app.use("/api/v1/protected/*", authMiddleware);
 
 - Unit test services and repositories in isolation (mock the layer below)
 - E2E tests use Miniflare local state — see `miniflare-e2e-testing` skill for pitfalls
-- Test file location: co-located with source (`*.test.ts`)
+- Test file location: `src/__tests__/<mirror-path>/` — mirrors the `src/` directory structure (e.g., `src/services/foo.service.ts` → `src/__tests__/services/foo.service.test.ts`)
 - Coverage target: services and repositories at 80%+
 - Integration tests for all API endpoints

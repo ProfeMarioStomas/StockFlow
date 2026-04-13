@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Database } from "../db/client";
-import { createSessionRepository } from "./session.repository";
+import type { Database } from "../../db/client";
+import { createSessionRepository } from "../../repositories/session.repository";
 
 // ── DB row fixture ────────────────────────────────────────────────────────────
 

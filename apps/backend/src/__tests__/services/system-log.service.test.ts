@@ -10,13 +10,13 @@ const { mockRepo } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../repositories/system-log.repository", () => ({
+vi.mock("../../repositories/system-log.repository", () => ({
   createSystemLogRepository: () => mockRepo,
 }));
 
 // ── Module under test ─────────────────────────────────────────────────────────
 
-import { createSystemLogService } from "./system-log.service";
+import { createSystemLogService } from "../../services/system-log.service";
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
