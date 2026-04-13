@@ -20,7 +20,7 @@ export type AppConfig = z.infer<typeof EnvSchema>;
  *
  * Throws on missing or invalid values — fail fast, never silently fall back.
  */
-export function getConfig(env: Record<string, string | undefined>): AppConfig {
+export function getConfig(env: Record<string, unknown>): AppConfig {
   const result = EnvSchema.safeParse(env);
 
   if (!result.success) {

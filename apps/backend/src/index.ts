@@ -1,5 +1,6 @@
 import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { cors } from "hono/cors";
 import { authRouter } from "./controllers/auth.controller";
 import { inventoryReceiptsRouter } from "./controllers/inventory-receipt.controller";
 import { productsRouter } from "./controllers/product.controller";
@@ -12,9 +13,28 @@ import { correlationMiddleware } from "./middleware/correlation";
 import { errorHandler } from "./middleware/error";
 import type { AppContext } from "./types";
 
+// Origins allowed to call the API.
+// Add the deployed frontend URL here when available.
+const ALLOWED_ORIGINS = ["http://localhost:5173"];
+
 const app = new OpenAPIHono<AppContext>();
 
 // ── Global middleware ────────────────────────────────────────────────────────
+
+// CORS must run first so preflight requests are handled before any auth check.
+// credentials: true is required because auth uses httpOnly cookies.
+app.use(
+  "*",
+  cors({
+    origin: (origin) => (ALLOWED_ORIGINS.includes(origin) ? origin : null),
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "X-Correlation-Id"],
+    exposeHeaders: ["X-Correlation-Id"],
+    credentials: true,
+    maxAge: 600,
+  }),
+);
+
 app.use("*", correlationMiddleware);
 
 // ── Error handler ────────────────────────────────────────────────────────────
