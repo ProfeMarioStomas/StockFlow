@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSaleSchema, updateSaleSchema } from "./sale.model";
+import { createSaleSchema, updateSaleSchema } from "../../models/sale.model";
 
 describe("createSaleSchema", () => {
   const validItem = {
@@ -47,7 +47,7 @@ describe("createSaleSchema", () => {
       items: [{ ...validItem, quantity: "3" }],
     });
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.items[0].quantity).toBe(3);
+    if (result.success) expect(result.data.items[0]!.quantity).toBe(3);
   });
 
   it("coerces unitPrice from string to number", () => {
@@ -56,7 +56,7 @@ describe("createSaleSchema", () => {
       items: [{ ...validItem, unitPrice: "14.99" }],
     });
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.items[0].unitPrice).toBe(14.99);
+    if (result.success) expect(result.data.items[0]!.unitPrice).toBe(14.99);
   });
 
   it("fails with zero quantity", () => {

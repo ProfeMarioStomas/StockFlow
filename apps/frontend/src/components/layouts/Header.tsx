@@ -5,7 +5,7 @@ import { authService } from "../../services/auth.service";
 import { Button } from "../common/Button";
 
 interface HeaderProps {
-  title?: string;
+  title?: string | undefined;
 }
 
 export function Header({ title }: HeaderProps) {
@@ -56,7 +56,7 @@ export function Header({ title }: HeaderProps) {
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" x2="9" y1="12" y2="12" />
           </svg>
-          Logout
+          Cerrar Sesión
         </Button>
       </div>
     </header>

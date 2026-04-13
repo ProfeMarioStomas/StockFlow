@@ -8,6 +8,7 @@ import { productService } from "../../../services/product.service";
 import { Button } from "../../common/Button";
 import { Input } from "../../common/Input";
 import { Modal } from "../../common/Modal";
+import { ProductCombobox } from "../../common/ProductCombobox";
 
 interface CreateReceiptModalProps {
   open: boolean;
@@ -16,7 +17,7 @@ interface CreateReceiptModalProps {
 
 type ServerError = {
   message: string;
-  details?: { field: string; message: string }[];
+  details?: { field: string; message: string }[] | undefined;
 };
 
 export function CreateReceiptModal({ open, onClose }: CreateReceiptModalProps) {
@@ -35,7 +36,8 @@ export function CreateReceiptModal({ open, onClose }: CreateReceiptModalProps) {
       notes: "",
       items: [{ productId: "", quantity: "" as unknown as number }],
     },
-    validators: { onSubmit: createInventoryReceiptSchema },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    validators: { onSubmit: createInventoryReceiptSchema as any },
     onSubmit: async ({ value }) => {
       setServerError(null);
       try {
@@ -56,7 +58,7 @@ export function CreateReceiptModal({ open, onClose }: CreateReceiptModalProps) {
         }>;
         const error = axiosError.response?.data?.error;
         setServerError({
-          message: error?.message ?? "An unexpected error occurred.",
+          message: error?.message ?? "Error desconocido.",
           details: error?.details?.length ? error.details : undefined,
         });
       }
@@ -73,13 +75,13 @@ export function CreateReceiptModal({ open, onClose }: CreateReceiptModalProps) {
     <Modal
       open={open}
       onClose={handleClose}
-      title="New Inventory Receipt"
-      description="Register incoming stock for one or more products."
+      title="Nuevo recibo de inventario"
+      description="Registrar stock entrante para uno o más productos."
       size="lg"
       footer={
         <>
           <Button variant="secondary" size="sm" type="button" onClick={handleClose}>
-            Cancel
+            Cancelar
           </Button>
           <form.Subscribe selector={(s) => s.isSubmitting}>
             {(isSubmitting) => (
@@ -90,7 +92,7 @@ export function CreateReceiptModal({ open, onClose }: CreateReceiptModalProps) {
                 form="create-receipt-form"
                 loading={isSubmitting}
               >
-                Create Receipt
+                Crear Recibo
               </Button>
             )}
           </form.Subscribe>
@@ -127,8 +129,8 @@ export function CreateReceiptModal({ open, onClose }: CreateReceiptModalProps) {
         <form.Field name="notes">
           {(field) => (
             <Input
-              label="Notes"
-              placeholder="Optional — e.g. Batch A, supplier XYZ"
+              label="Notas"
+              placeholder="Opcional — e.g. Batch A, supplier XYZ"
               value={field.state.value}
               onBlur={field.handleBlur}
               onChange={(e) => field.handleChange(e.target.value)}
@@ -151,33 +153,18 @@ export function CreateReceiptModal({ open, onClose }: CreateReceiptModalProps) {
               <div className="flex flex-col gap-2">
                 {field.state.value.map((_, i) => (
                   <div key={i} className="flex items-end gap-2">
-                    {/* Product select */}
+                    {/* Product combobox */}
                     <form.Field name={`items[${i}].productId`}>
                       {(subField) => (
-                        <div className="flex flex-1 flex-col gap-1.5">
-                          {i === 0 && (
-                            <label className="text-sm font-medium text-[var(--color-foreground)]">
-                              Product
-                            </label>
-                          )}
-                          <select
+                        <div className="flex-1">
+                          <ProductCombobox
+                            products={products}
                             value={subField.state.value ?? ""}
+                            onChange={subField.handleChange}
                             onBlur={subField.handleBlur}
-                            onChange={(e) => subField.handleChange(e.target.value)}
-                            className="h-9 w-full rounded-[var(--radius-md)] border border-[var(--color-input)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-foreground)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1"
-                          >
-                            <option value="">Select product...</option>
-                            {products.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name} — stock: {p.stock}
-                              </option>
-                            ))}
-                          </select>
-                          {subField.state.meta.errors[0] && (
-                            <p className="text-xs text-[var(--color-error-text)]">
-                              {subField.state.meta.errors[0].message}
-                            </p>
-                          )}
+                            label={i === 0 ? "Producto" : undefined}
+                            error={subField.state.meta.errors[0]?.message}
+                          />
                         </div>
                       )}
                     </form.Field>
@@ -188,7 +175,7 @@ export function CreateReceiptModal({ open, onClose }: CreateReceiptModalProps) {
                         <div className="flex w-28 shrink-0 flex-col gap-1.5">
                           {i === 0 && (
                             <label className="text-sm font-medium text-[var(--color-foreground)]">
-                              Qty
+                              Ctn.
                             </label>
                           )}
                           <input
@@ -272,7 +259,7 @@ export function CreateReceiptModal({ open, onClose }: CreateReceiptModalProps) {
                     <path d="M5 12h14" />
                     <path d="M12 5v14" />
                   </svg>
-                  Add Item
+                  Agregar item
                 </Button>
               </div>
             )}

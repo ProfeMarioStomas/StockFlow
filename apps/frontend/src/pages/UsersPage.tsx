@@ -48,10 +48,10 @@ export function UsersPage() {
         {/* Page header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-[var(--color-foreground)]">Users</h2>
+            <h2 className="text-lg font-semibold text-[var(--color-foreground)]">Usuarios</h2>
             {meta && (
               <p className="mt-0.5 text-sm text-[var(--color-muted-foreground)]">
-                {meta.total} {meta.total === 1 ? "user" : "users"} total
+                {meta.total} {meta.total === 1 ? "usuario" : "usuarios"} total
               </p>
             )}
           </div>
@@ -71,7 +71,7 @@ export function UsersPage() {
               <path d="M5 12h14" />
               <path d="M12 5v14" />
             </svg>
-            Add User
+            Agregar Usuario
           </Button>
         </div>
 
@@ -80,17 +80,17 @@ export function UsersPage() {
           <Table>
             <TableHead>
               <tr>
-                <TableHeader>Name</TableHeader>
+                <TableHeader>Nombre</TableHeader>
                 <TableHeader>Email</TableHeader>
-                <TableHeader>Role</TableHeader>
-                <TableHeader>Status</TableHeader>
-                <TableHeader>Created</TableHeader>
-                <TableHeader className="text-right">Actions</TableHeader>
+                <TableHeader>Rol</TableHeader>
+                <TableHeader>Estado</TableHeader>
+                <TableHeader>Creado</TableHeader>
+                <TableHeader className="text-right">Acciones</TableHeader>
               </tr>
             </TableHead>
             <TableBody>
               {users.length === 0 ? (
-                <TableEmpty colSpan={6} message="No users found." />
+                <TableEmpty colSpan={6} message="No se encontraron usuarios." />
               ) : (
                 users.map((user) => (
                   <TableRow key={user.id}>
@@ -105,7 +105,7 @@ export function UsersPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.isActive ? "success" : "destructive"}>
-                        {user.isActive ? "Active" : "Inactive"}
+                        {user.isActive ? "Activo" : "Inactivo"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-[var(--color-muted-foreground)]">
@@ -119,7 +119,7 @@ export function UsersPage() {
                           onClick={() => setModal({ type: "edit", user })}
                           aria-label={`Edit ${user.name}`}
                         >
-                          Edit
+                          Editar
                         </Button>
                         <Button
                           variant="ghost"
@@ -128,7 +128,7 @@ export function UsersPage() {
                           aria-label={`Delete ${user.name}`}
                           className="text-[var(--color-destructive)] hover:text-[var(--color-destructive)]"
                         >
-                          Delete
+                          Eliminar
                         </Button>
                       </div>
                     </TableCell>

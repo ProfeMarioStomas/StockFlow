@@ -24,7 +24,7 @@ export default function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <AppLayout title="Dashboard">
+                <AppLayout title="Escritorio">
                   <DashboardPage />
                 </AppLayout>
               </ProtectedRoute>
@@ -34,7 +34,7 @@ export default function App() {
             path="/products"
             element={
               <ProtectedRoute>
-                <AppLayout title="Products">
+                <AppLayout title="Productos">
                   <ProductsPage />
                 </AppLayout>
               </ProtectedRoute>
@@ -44,7 +44,7 @@ export default function App() {
             path="/sales"
             element={
               <ProtectedRoute>
-                <AppLayout title="Sales">
+                <AppLayout title="Ventas">
                   <SalesPage />
                 </AppLayout>
               </ProtectedRoute>
@@ -54,7 +54,7 @@ export default function App() {
             path="/inventory-receipts"
             element={
               <ProtectedRoute>
-                <AppLayout title="Inventory Receipts">
+                <AppLayout title="Ingresos">
                   <InventoryReceiptsPage />
                 </AppLayout>
               </ProtectedRoute>
@@ -64,7 +64,7 @@ export default function App() {
             path="/users"
             element={
               <ProtectedRoute>
-                <AppLayout title="Users">
+                <AppLayout title="Usuarios">
                   <UsersPage />
                 </AppLayout>
               </ProtectedRoute>

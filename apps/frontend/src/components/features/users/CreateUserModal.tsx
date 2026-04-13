@@ -26,7 +26,8 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps) {
       password: "",
       role: "seller" as "admin" | "seller",
     },
-    validators: { onSubmit: createUserSchema },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    validators: { onSubmit: createUserSchema as any },
     onSubmit: async ({ value }) => {
       setServerError(null);
       try {
@@ -36,7 +37,7 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps) {
       } catch (err) {
         const axiosError = err as AxiosError<{ error: { message: string } }>;
         setServerError(
-          axiosError.response?.data?.error?.message ?? "An unexpected error occurred.",
+          axiosError.response?.data?.error?.message ?? "Error desconocido.",
         );
       }
     },
@@ -52,13 +53,13 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps) {
     <Modal
       open={open}
       onClose={handleClose}
-      title="Add User"
-      description="Create a new system user with a role."
+      title="Agregar usuario"
+      description="Crear un nuevo usuario del sistema con un rol."
       size="md"
       footer={
         <>
           <Button variant="secondary" size="sm" type="button" onClick={handleClose}>
-            Cancel
+            Cancelar
           </Button>
           <form.Subscribe selector={(s) => s.isSubmitting}>
             {(isSubmitting) => (
@@ -69,7 +70,7 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps) {
                 form="create-user-form"
                 loading={isSubmitting}
               >
-                Create User
+                Crear Usuario
               </Button>
             )}
           </form.Subscribe>
@@ -97,7 +98,7 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps) {
         <form.Field name="name">
           {(field) => (
             <Input
-              label="Name"
+              label="Nombre"
               required
               placeholder="John Doe"
               value={field.state.value}
@@ -127,10 +128,10 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps) {
         <form.Field name="password">
           {(field) => (
             <Input
-              label="Password"
+              label="Contraseña"
               type="password"
               required
-              placeholder="Min. 8 characters"
+              placeholder="Min. 8 caracteres"
               autoComplete="new-password"
               value={field.state.value}
               onBlur={field.handleBlur}
@@ -144,7 +145,7 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps) {
           {(field) => (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={field.name} required>
-                Role
+                Rol
               </Label>
               <select
                 id={field.name}
@@ -162,8 +163,8 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps) {
                     : "border-[var(--color-input)] hover:border-[var(--color-secondary)]",
                 )}
               >
-                <option value="seller">Seller</option>
-                <option value="admin">Admin</option>
+                <option value="seller">Vendedor</option>
+                <option value="admin">Administrador</option>
               </select>
               {field.state.meta.errors[0] && (
                 <p role="alert" className="text-xs text-[var(--color-error-text)]">

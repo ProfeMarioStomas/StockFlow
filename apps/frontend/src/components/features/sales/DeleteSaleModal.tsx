@@ -11,7 +11,7 @@ interface DeleteSaleModalProps {
   onClose: () => void;
 }
 
-const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+const fmt = new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" });
 
 export function DeleteSaleModal({ sale, open, onClose }: DeleteSaleModalProps) {
   const queryClient = useQueryClient();
@@ -28,7 +28,7 @@ export function DeleteSaleModal({ sale, open, onClose }: DeleteSaleModalProps) {
       await queryClient.invalidateQueries({ queryKey: ["products"] });
       onClose();
     } catch {
-      setServerError("Failed to void the sale. Please try again.");
+      setServerError("Error al anular la venta. Por favor, inténtelo de nuevo.");
     } finally {
       setIsDeleting(false);
     }
@@ -38,28 +38,28 @@ export function DeleteSaleModal({ sale, open, onClose }: DeleteSaleModalProps) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Void Sale"
+      title="Anular venta"
       size="sm"
       footer={
         <>
           <Button variant="secondary" size="sm" onClick={onClose} disabled={isDeleting}>
-            Cancel
+            Cancelar
           </Button>
           <Button variant="destructive" size="sm" onClick={handleVoid} loading={isDeleting}>
-            Void Sale
+            Anular
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-3">
         <p className="text-sm text-[var(--color-foreground)]">
-          Are you sure you want to void the sale for{" "}
-          <span className="font-semibold">{fmt.format(sale.totalAmount)}</span>? Stock will be
-          reverted for all{" "}
+          ¿Está seguro de que desea anular la venta por{" "}
+          <span className="font-semibold">{fmt.format(sale.totalAmount)}</span>? Stock se revertirá
+          para todos los{" "}
           <span className="font-medium">
             {sale.details.length} {sale.details.length === 1 ? "item" : "items"}
           </span>
-          . This action cannot be undone.
+          . Esta acción no se puede deshacer.
         </p>
 
         {serverError && (

@@ -103,13 +103,18 @@ function setAuthCookies(
   refreshToken: string,
   secure: boolean,
 ): void {
-  const base = { httpOnly: true, secure, sameSite: "Strict" as const, path: "/" };
+  // SameSite=None is required for cross-origin cookie sending (e.g. local frontend
+  // against the production backend). It must be paired with Secure=true.
+  // In local dev (secure=false) use Lax, which is safe for same-origin proxy usage.
+  const sameSite = secure ? ("None" as const) : ("Lax" as const);
+  const base = { httpOnly: true, secure, sameSite, path: "/" };
   setCookie(c, "access_token", accessToken, { ...base, maxAge: 900 });
   setCookie(c, "refresh_token", refreshToken, { ...base, maxAge: 604800 });
 }
 
 function clearAuthCookies(c: Context, secure: boolean): void {
-  const base = { httpOnly: true, secure, sameSite: "Strict" as const, path: "/" };
+  const sameSite = secure ? ("None" as const) : ("Lax" as const);
+  const base = { httpOnly: true, secure, sameSite, path: "/" };
   deleteCookie(c, "access_token", base);
   deleteCookie(c, "refresh_token", base);
 }
@@ -142,10 +147,11 @@ authRouter.openapi(refreshRoute, async (c) => {
   const service = createAuthService(db);
   const result = await service.refresh(rawRefreshToken, config.JWT_SECRET);
 
+  const isProduction = config.NODE_ENV === "production";
   setCookie(c, "access_token", result.accessToken, {
     httpOnly: true,
-    secure: config.NODE_ENV === "production",
-    sameSite: "Strict",
+    secure: isProduction,
+    sameSite: isProduction ? "None" : "Lax",
     path: "/",
     maxAge: 900,
   });

@@ -8,6 +8,7 @@ import { productService } from "../../../services/product.service";
 import { saleService } from "../../../services/sale.service";
 import { Button } from "../../common/Button";
 import { Modal } from "../../common/Modal";
+import { ProductCombobox } from "../../common/ProductCombobox";
 
 interface CreateSaleModalProps {
   open: boolean;
@@ -16,7 +17,7 @@ interface CreateSaleModalProps {
 
 type ServerError = {
   message: string;
-  details?: { field: string; message: string }[];
+  details?: { field: string; message: string }[] | undefined;
 };
 
 const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -46,7 +47,8 @@ export function CreateSaleModal({ open, onClose }: CreateSaleModalProps) {
         },
       ],
     },
-    validators: { onSubmit: createSaleSchema },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    validators: { onSubmit: createSaleSchema as any },
     onSubmit: async ({ value }) => {
       setServerError(null);
       try {
@@ -62,7 +64,7 @@ export function CreateSaleModal({ open, onClose }: CreateSaleModalProps) {
         }>;
         const error = axiosError.response?.data?.error;
         setServerError({
-          message: error?.message ?? "An unexpected error occurred.",
+          message: error?.message ?? "Error desconocido.",
           details: error?.details?.length ? error.details : undefined,
         });
       }
@@ -79,13 +81,13 @@ export function CreateSaleModal({ open, onClose }: CreateSaleModalProps) {
     <Modal
       open={open}
       onClose={handleClose}
-      title="New Sale"
-      description="Register a new sale and deduct stock."
+      title="Nueva Venta"
+      description="Registrar una nueva venta y restar stock."
       size="lg"
       footer={
         <>
           <Button variant="secondary" size="sm" type="button" onClick={handleClose}>
-            Cancel
+            Cancelar
           </Button>
           <form.Subscribe selector={(s) => s.isSubmitting}>
             {(isSubmitting) => (
@@ -96,7 +98,7 @@ export function CreateSaleModal({ open, onClose }: CreateSaleModalProps) {
                 form="create-sale-form"
                 loading={isSubmitting}
               >
-                Create Sale
+                Crear Venta
               </Button>
             )}
           </form.Subscribe>
@@ -135,7 +137,7 @@ export function CreateSaleModal({ open, onClose }: CreateSaleModalProps) {
           {(field) => (
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-[var(--color-foreground)]">
-                Payment Method
+                Método de pago
                 <span className="ml-1 text-[var(--color-destructive)]" aria-hidden="true">
                   *
                 </span>
@@ -178,38 +180,20 @@ export function CreateSaleModal({ open, onClose }: CreateSaleModalProps) {
                     {/* Product */}
                     <form.Field name={`items[${i}].productId`}>
                       {(subField) => (
-                        <div className="flex flex-1 flex-col gap-1.5">
-                          {i === 0 && (
-                            <label className="text-sm font-medium text-[var(--color-foreground)]">
-                              Product
-                            </label>
-                          )}
-                          <select
+                        <div className="flex-1">
+                          <ProductCombobox
+                            products={products}
                             value={subField.state.value ?? ""}
+                            onChange={subField.handleChange}
                             onBlur={subField.handleBlur}
-                            onChange={(e) => {
-                              subField.handleChange(e.target.value);
+                            onSelect={(product) => {
                               // Auto-fill unit price with the product's listed sale price
-                              const product = products.find((p) => p.id === e.target.value);
-                              if (product) {
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                (form as any).setFieldValue(`items[${i}].unitPrice`, product.price);
-                              }
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              (form as any).setFieldValue(`items[${i}].unitPrice`, product.price);
                             }}
-                            className="h-9 w-full rounded-[var(--radius-md)] border border-[var(--color-input)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-foreground)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1"
-                          >
-                            <option value="">Select product...</option>
-                            {products.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name} — stock: {p.stock}
-                              </option>
-                            ))}
-                          </select>
-                          {subField.state.meta.errors[0] && (
-                            <p className="text-xs text-[var(--color-error-text)]">
-                              {subField.state.meta.errors[0].message}
-                            </p>
-                          )}
+                            label={i === 0 ? "Producto" : undefined}
+                            error={subField.state.meta.errors[0]?.message}
+                          />
                         </div>
                       )}
                     </form.Field>
@@ -220,7 +204,7 @@ export function CreateSaleModal({ open, onClose }: CreateSaleModalProps) {
                         <div className="flex w-20 shrink-0 flex-col gap-1.5">
                           {i === 0 && (
                             <label className="text-sm font-medium text-[var(--color-foreground)]">
-                              Qty
+                              Ctd
                             </label>
                           )}
                           <input
@@ -250,7 +234,7 @@ export function CreateSaleModal({ open, onClose }: CreateSaleModalProps) {
                         <div className="flex w-28 shrink-0 flex-col gap-1.5">
                           {i === 0 && (
                             <label className="text-sm font-medium text-[var(--color-foreground)]">
-                              Unit Price
+                              Precio Unitario
                             </label>
                           )}
                           <input
@@ -343,7 +327,7 @@ export function CreateSaleModal({ open, onClose }: CreateSaleModalProps) {
                     <path d="M5 12h14" />
                     <path d="M12 5v14" />
                   </svg>
-                  Add Item
+                  Agregar producto
                 </Button>
               </div>
             )}

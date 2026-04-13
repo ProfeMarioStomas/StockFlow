@@ -2,7 +2,7 @@ import type { LabelHTMLAttributes } from "react";
 import { cn } from "../../lib/cn";
 
 interface LabelProps extends LabelHTMLAttributes<HTMLLabelElement> {
-  required?: boolean;
+  required?: boolean | undefined;
 }
 
 export function Label({ required, className, children, ...props }: LabelProps) {

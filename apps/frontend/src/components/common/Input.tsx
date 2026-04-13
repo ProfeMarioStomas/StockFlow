@@ -4,9 +4,9 @@ import { cn } from "../../lib/cn";
 import { Label } from "./Label";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  error?: string;
-  helperText?: string;
+  label?: string | undefined;
+  error?: string | undefined;
+  helperText?: string | undefined;
 }
 
 export function Input({

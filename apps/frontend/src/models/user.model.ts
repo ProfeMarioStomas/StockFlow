@@ -1,16 +1,16 @@
 import { z } from "zod";
 
 export const createUserSchema = z.object({
-  name: z.string().min(1, { error: "Name is required" }).max(255),
-  email: z.email({ error: "Enter a valid email address" }),
-  password: z.string().min(8, { error: "Password must be at least 8 characters" }),
-  role: z.enum(["admin", "seller"], { error: "Select a valid role" }),
+  name: z.string().min(1, { error: "Nombre requerido" }).max(255),
+  email: z.email({ error: "Ingrese un correo electrónico válido" }),
+  password: z.string().min(8, { error: "La contraseña debe tener al menos 8 caracteres" }),
+  role: z.enum(["admin", "seller"], { error: "Seleccione un rol válido" }),
 });
 
 export const updateUserSchema = z.object({
-  name: z.string().min(1, { error: "Name is required" }).max(255).optional(),
-  email: z.email({ error: "Enter a valid email address" }).optional(),
-  role: z.enum(["admin", "seller"], { error: "Select a valid role" }).optional(),
+  name: z.string().min(1, { error: "Nombre requerido" }).max(255).optional(),
+  email: z.email({ error: "Ingrese un correo electrónico válido" }).optional(),
+  role: z.enum(["admin", "seller"], { error: "Seleccione un rol válido" }).optional(),
   isActive: z.boolean().optional(),
 });
 

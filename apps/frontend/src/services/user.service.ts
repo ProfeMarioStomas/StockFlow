@@ -17,4 +17,6 @@ export const userService = {
     api.put<UserResponse>(`/users/${id}`, data).then((r) => r.data),
 
   deleteUser: (id: string) => api.delete<void>(`/users/${id}`),
+
+  getUserById: (id: string) => api.get<UserResponse>(`/users/${id}`).then((r) => r.data),
 };

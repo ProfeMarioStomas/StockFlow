@@ -1,42 +1,42 @@
 import { z } from "zod";
 
 export const createProductSchema = z.object({
-  name: z.string().min(1, { error: "Name is required" }).max(255),
-  barcode: z.string().min(1, { error: "Barcode is required" }).max(100),
+  name: z.string().min(1, { error: "Nombre requerido" }).max(255),
+  barcode: z.string().min(1, { error: "Código de barras requerido" }).max(100),
   price: z.coerce
-    .number({ error: "Price must be a number" })
-    .positive({ error: "Price must be greater than 0" }),
+    .number({ error: "Precio debe ser un número" })
+    .positive({ error: "Precio debe ser mayor que 0" }),
   costPrice: z.coerce
-    .number({ error: "Cost price must be a number" })
-    .positive({ error: "Cost price must be greater than 0" })
+    .number({ error: "Precio de costo debe ser un número" })
+    .positive({ error: "Precio de costo debe ser mayor que 0" })
     .optional(),
   stock: z.coerce
-    .number({ error: "Stock must be a number" })
-    .int({ error: "Stock must be a whole number" })
-    .nonnegative({ error: "Stock cannot be negative" })
+    .number({ error: "Stock debe ser un número" })
+    .int({ error: "Stock debe ser un número entero" })
+    .nonnegative({ error: "Stock no puede ser negativo" })
     .optional(),
   criticalStock: z.coerce
-    .number({ error: "Critical stock must be a number" })
-    .int({ error: "Critical stock must be a whole number" })
-    .nonnegative({ error: "Critical stock cannot be negative" })
+    .number({ error: "Stock crítico debe ser un número" })
+    .int({ error: "Stock crítico debe ser un número entero" })
+    .nonnegative({ error: "Stock crítico no puede ser negativo" })
     .optional(),
 });
 
 export const updateProductSchema = z.object({
-  name: z.string().min(1, { error: "Name is required" }).max(255).optional(),
-  barcode: z.string().min(1, { error: "Barcode is required" }).max(100).optional(),
+  name: z.string().min(1, { error: "Nombre requerido" }).max(255).optional(),
+  barcode: z.string().min(1, { error: "Código de barras requerido" }).max(100).optional(),
   price: z.coerce
-    .number({ error: "Price must be a number" })
-    .positive({ error: "Price must be greater than 0" })
+    .number({ error: "Precio debe ser un número" })
+    .positive({ error: "Precio debe ser mayor que 0" })
     .optional(),
   costPrice: z.coerce
-    .number({ error: "Cost price must be a number" })
-    .positive({ error: "Cost price must be greater than 0" })
+    .number({ error: "Precio de costo debe ser un número" })
+    .positive({ error: "Precio de costo debe ser mayor que 0" })
     .optional(),
   criticalStock: z.coerce
-    .number({ error: "Critical stock must be a number" })
-    .int({ error: "Critical stock must be a whole number" })
-    .nonnegative({ error: "Critical stock cannot be negative" })
+    .number({ error: "Stock crítico debe ser un número" })
+    .int({ error: "Stock crítico debe ser un número entero" })
+    .nonnegative({ error: "Stock crítico no puede ser negativo" })
     .optional(),
   isActive: z.boolean().optional(),
 });

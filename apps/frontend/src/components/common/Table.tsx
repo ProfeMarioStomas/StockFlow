@@ -93,7 +93,7 @@ export function TableCell({
 
 export function TableEmpty({
   colSpan,
-  message = "No results found.",
+  message = "No se encontraron resultados.",
 }: {
   colSpan: number;
   message?: string;

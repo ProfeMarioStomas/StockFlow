@@ -24,7 +24,7 @@ export function DeleteProductModal({ product, open, onClose }: DeleteProductModa
       await queryClient.invalidateQueries({ queryKey: ["products"] });
       onClose();
     } catch {
-      setServerError("Failed to delete the product. Please try again.");
+      setServerError("No fue posible eliminar el producto. Por favor inténtelo de nuevo.");
     } finally {
       setIsDeleting(false);
     }
@@ -34,23 +34,23 @@ export function DeleteProductModal({ product, open, onClose }: DeleteProductModa
     <Modal
       open={open}
       onClose={onClose}
-      title="Delete Product"
+      title="Eliminar producto"
       size="sm"
       footer={
         <>
           <Button variant="secondary" size="sm" onClick={onClose} disabled={isDeleting}>
-            Cancel
+            Cancelar
           </Button>
           <Button variant="destructive" size="sm" onClick={handleDelete} loading={isDeleting}>
-            Delete
+            Eliminar
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-3">
         <p className="text-sm text-[var(--color-foreground)]">
-          Are you sure you want to delete <span className="font-semibold">{product.name}</span>?
-          This action cannot be undone.
+          ¿Estás seguro de que quieres eliminar <span className="font-semibold">{product.name}</span>?
+          Esta acción no se puede deshacer.
         </p>
 
         {serverError && (

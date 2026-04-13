@@ -17,7 +17,8 @@ export function LoginPage() {
 
   const form = useForm({
     defaultValues: { email: "", password: "" },
-    validators: { onSubmit: loginSchema },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    validators: { onSubmit: loginSchema as any },
     onSubmit: async ({ value }) => {
       setServerError(null);
       try {
@@ -25,7 +26,7 @@ export function LoginPage() {
         await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
         navigate("/", { replace: true });
       } catch {
-        setServerError("Invalid email or password. Please try again.");
+        setServerError("Email o contraseña incorrectos. Por favor, inténtelo de nuevo.");
       }
     },
   });
@@ -42,7 +43,7 @@ export function LoginPage() {
             Stock<span className="text-[var(--color-accent)]">Flow</span>
           </span>
           <p className="mt-1.5 text-sm text-[var(--color-muted-foreground)]">
-            Sign in to your account
+            Iniciar sesión
           </p>
         </div>
 
@@ -87,7 +88,7 @@ export function LoginPage() {
             <form.Field name="password">
               {(field) => (
                 <Input
-                  label="Password"
+                  label="Contraseña"
                   type="password"
                   required
                   autoComplete="current-password"
@@ -110,7 +111,7 @@ export function LoginPage() {
                   loading={isSubmitting}
                   className="w-full"
                 >
-                  Sign in
+                  Ingresar
                 </Button>
               )}
             </form.Subscribe>

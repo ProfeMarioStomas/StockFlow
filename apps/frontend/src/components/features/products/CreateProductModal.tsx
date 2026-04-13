@@ -15,7 +15,7 @@ interface CreateProductModalProps {
 
 type ServerError = {
   message: string;
-  details?: { field: string; message: string }[];
+  details?: { field: string; message: string }[] | undefined;
 };
 
 export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
@@ -43,7 +43,8 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
       stock: undefined as number | undefined,
       criticalStock: undefined as number | undefined,
     },
-    validators: { onSubmit: createProductSchema },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    validators: { onSubmit: createProductSchema as any },
     onSubmit: async ({ value }) => {
       setServerError(null);
       try {
@@ -55,7 +56,7 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
         // TanStack Form passes raw form state (HTML inputs return strings).
         // Parse through the Zod schema to coerce numeric fields before sending to the API.
         const coerced = createProductSchema.parse(value);
-        await productService.createProduct({ ...coerced, imageKey });
+        await productService.createProduct({ ...coerced, ...(imageKey ? { imageKey } : {}) });
         await queryClient.invalidateQueries({ queryKey: ["products"] });
         handleClose();
       } catch (err) {
@@ -64,7 +65,7 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
         }>;
         const error = axiosError.response?.data?.error;
         setServerError({
-          message: error?.message ?? "An unexpected error occurred.",
+          message: error?.message ?? "Error desconocido",
           details: error?.details?.length ? error.details : undefined,
         });
       }
@@ -83,13 +84,13 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
     <Modal
       open={open}
       onClose={handleClose}
-      title="Add Product"
-      description="Create a new product in the catalog."
+      title="Agregar producto"
+      description="Crear un nuevo producto en el catálogo."
       size="md"
       footer={
         <>
           <Button variant="secondary" size="sm" type="button" onClick={handleClose}>
-            Cancel
+            Cancelar
           </Button>
           <form.Subscribe selector={(s) => s.isSubmitting}>
             {(isSubmitting) => (
@@ -100,7 +101,7 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
                 form="create-product-form"
                 loading={isSubmitting}
               >
-                Create Product
+                Crear Producto
               </Button>
             )}
           </form.Subscribe>
@@ -137,7 +138,7 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
         <form.Field name="name">
           {(field) => (
             <Input
-              label="Name"
+              label="Nombre"
               required
               placeholder="e.g. Widget Pro"
               value={field.state.value}
@@ -151,7 +152,7 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
         <form.Field name="barcode">
           {(field) => (
             <Input
-              label="Barcode"
+              label="Código de barras"
               required
               placeholder="e.g. 7501234567890"
               value={field.state.value}
@@ -166,7 +167,7 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
           <form.Field name="price">
             {(field) => (
               <Input
-                label="Sale Price"
+                label="Precio de venta"
                 type="number"
                 required
                 placeholder="0.00"
@@ -183,12 +184,12 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
           <form.Field name="costPrice">
             {(field) => (
               <Input
-                label="Cost Price"
+                label="Precio de costo"
                 type="number"
                 placeholder="0.00"
                 min={0}
                 step={0.01}
-                helperText="Optional."
+                helperText="Opcional."
                 value={(field.state.value ?? "") as unknown as string}
                 onBlur={field.handleBlur}
                 onChange={(e) =>
@@ -206,12 +207,12 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
           <form.Field name="stock">
             {(field) => (
               <Input
-                label="Initial Stock"
+                label="Stock Inicial"
                 type="number"
                 placeholder="0"
                 min={0}
                 step={1}
-                helperText="Optional — defaults to 0."
+                helperText="Opcional — por defecto es 0."
                 value={(field.state.value ?? "") as unknown as string}
                 onBlur={field.handleBlur}
                 onChange={(e) =>
@@ -227,12 +228,12 @@ export function CreateProductModal({ open, onClose }: CreateProductModalProps) {
           <form.Field name="criticalStock">
             {(field) => (
               <Input
-                label="Critical Stock"
+                label="Stock Crítico"
                 type="number"
                 placeholder="0"
                 min={0}
                 step={1}
-                helperText="Alert threshold. Optional."
+                helperText="Opcional — por defecto es 0."
                 value={(field.state.value ?? "") as unknown as string}
                 onBlur={field.handleBlur}
                 onChange={(e) =>

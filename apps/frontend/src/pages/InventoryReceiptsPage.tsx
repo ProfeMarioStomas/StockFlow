@@ -53,12 +53,12 @@ export function InventoryReceiptsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-[var(--color-foreground)]">
-              Inventory Receipts
+              Comprobante Ingresos
             </h2>
             {meta && (
               <p className="mt-0.5 text-sm text-[var(--color-muted-foreground)]">
-                {meta.total} {meta.total === 1 ? "receipt" : "receipts"}
-                {showInactive ? " (including voided)" : ""}
+                {meta.total} {meta.total === 1 ? "comprobante" : "comprobantes"}
+                {showInactive ? " (incluyendo anulados)" : ""}
               </p>
             )}
           </div>
@@ -74,7 +74,7 @@ export function InventoryReceiptsPage() {
                 }}
                 className="h-4 w-4 cursor-pointer rounded border-[var(--color-input)] accent-[var(--color-accent)]"
               />
-              Show voided
+              Mostrar anulados
             </label>
 
             <Button variant="primary" size="sm" onClick={() => setModal({ type: "create" })}>
@@ -93,7 +93,7 @@ export function InventoryReceiptsPage() {
                 <path d="M5 12h14" />
                 <path d="M12 5v14" />
               </svg>
-              New Receipt
+              Nuevo comprobante
             </Button>
           </div>
         </div>
@@ -103,16 +103,16 @@ export function InventoryReceiptsPage() {
           <Table>
             <TableHead>
               <tr>
-                <TableHeader>Date</TableHeader>
+                <TableHeader>Fecha</TableHeader>
                 <TableHeader>Items</TableHeader>
-                <TableHeader>Notes</TableHeader>
-                <TableHeader>Status</TableHeader>
-                <TableHeader className="text-right">Actions</TableHeader>
+                <TableHeader>Notas</TableHeader>
+                <TableHeader>Estado</TableHeader>
+                <TableHeader className="text-right">Acciones</TableHeader>
               </tr>
             </TableHead>
             <TableBody>
               {receipts.length === 0 ? (
-                <TableEmpty colSpan={5} message="No inventory receipts found." />
+                <TableEmpty colSpan={5} message="No se encontraron comprobantes." />
               ) : (
                 receipts.map((receipt) => (
                   <TableRow key={receipt.id}>
@@ -125,7 +125,7 @@ export function InventoryReceiptsPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={receipt.isActive ? "success" : "destructive"}>
-                        {receipt.isActive ? "Active" : "Voided"}
+                        {receipt.isActive ? "Activo" : "Anulado"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -136,7 +136,7 @@ export function InventoryReceiptsPage() {
                           onClick={() => setModal({ type: "view", receipt })}
                           aria-label="View receipt details"
                         >
-                          View
+                          Ver
                         </Button>
                         <Button
                           variant="ghost"
@@ -144,7 +144,7 @@ export function InventoryReceiptsPage() {
                           onClick={() => setModal({ type: "edit", receipt })}
                           aria-label="Edit receipt"
                         >
-                          Edit
+                          Editar
                         </Button>
                         {receipt.isActive && (
                           <Button
@@ -154,7 +154,7 @@ export function InventoryReceiptsPage() {
                             aria-label="Void receipt"
                             className="text-[var(--color-destructive)] hover:text-[var(--color-destructive)]"
                           >
-                            Void
+                            Anular
                           </Button>
                         )}
                       </div>

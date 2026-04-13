@@ -35,6 +35,7 @@ export const CreateProductSchema = z
       .nonnegative({ error: "Critical stock cannot be negative" })
       .optional()
       .openapi({ example: 10 }),
+    imageKey: z.string().nullable().optional().openapi({ example: "products/abc123.webp" }),
   })
   .openapi("CreateProductInput");
 
@@ -69,6 +70,7 @@ export const UpdateProductSchema = z
       .optional()
       .openapi({ example: 10 }),
     isActive: z.boolean().optional().openapi({ example: true }),
+    imageKey: z.string().nullable().optional().openapi({ example: "products/abc123.webp" }),
   })
   .openapi("UpdateProductInput");
 

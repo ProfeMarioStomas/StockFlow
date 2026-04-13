@@ -3,6 +3,7 @@ import { useState } from "react";
 import { DeleteProductModal } from "../components/features/products/DeleteProductModal";
 import { EditProductModal } from "../components/features/products/EditProductModal";
 import { CreateProductModal } from "../components/features/products/CreateProductModal";
+import { ProductImageModal } from "../components/features/products/ProductImageModal";
 import { Badge } from "../components/common/Badge";
 import { Button } from "../components/common/Button";
 import { Pagination } from "../components/common/Pagination";
@@ -24,6 +25,7 @@ type ModalState =
   | { type: "create" }
   | { type: "edit"; product: ProductResponse }
   | { type: "delete"; product: ProductResponse }
+  | { type: "image"; product: ProductResponse }
   | null;
 
 const PAGE_SIZE = 20;
@@ -49,11 +51,11 @@ export function ProductsPage() {
         {/* Page header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-[var(--color-foreground)]">Products</h2>
+            <h2 className="text-lg font-semibold text-[var(--color-foreground)]">Productos</h2>
             {meta && (
               <p className="mt-0.5 text-sm text-[var(--color-muted-foreground)]">
-                {meta.total} {meta.total === 1 ? "product" : "products"}
-                {showInactive ? " (including inactive)" : ""}
+                {meta.total} {meta.total === 1 ? "producto" : "productos"}
+                {showInactive ? " (incluyendo inactivos)" : ""}
               </p>
             )}
           </div>
@@ -69,7 +71,7 @@ export function ProductsPage() {
                 }}
                 className="h-4 w-4 cursor-pointer rounded border-[var(--color-input)] accent-[var(--color-accent)]"
               />
-              Show inactive
+              Mostrar inactivos
             </label>
 
             <Button variant="primary" size="sm" onClick={() => setModal({ type: "create" })}>
@@ -88,7 +90,7 @@ export function ProductsPage() {
                 <path d="M5 12h14" />
                 <path d="M12 5v14" />
               </svg>
-              Add Product
+              Agregar producto
             </Button>
           </div>
         </div>
@@ -98,31 +100,31 @@ export function ProductsPage() {
           <Table>
             <TableHead>
               <tr>
-                <TableHeader>Name</TableHeader>
-                <TableHeader>Price</TableHeader>
+                <TableHeader>Nombre</TableHeader>
+                <TableHeader>Precio</TableHeader>
                 <TableHeader>Stock</TableHeader>
                 <TableHeader>Status</TableHeader>
-                <TableHeader>Created</TableHeader>
-                <TableHeader className="text-right">Actions</TableHeader>
+                <TableHeader>Creado</TableHeader>
+                <TableHeader className="text-right">Acciones</TableHeader>
               </tr>
             </TableHead>
             <TableBody>
               {products.length === 0 ? (
-                <TableEmpty colSpan={6} message="No products found." />
+                <TableEmpty colSpan={6} message="No se encontraron productos." />
               ) : (
                 products.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>
-                      {new Intl.NumberFormat("en-US", {
+                      {new Intl.NumberFormat("es-CL", {
                         style: "currency",
-                        currency: "USD",
+                        currency: "CLP",
                       }).format(product.price)}
                     </TableCell>
                     <TableCell>{product.stock}</TableCell>
                     <TableCell>
                       <Badge variant={product.isActive ? "success" : "destructive"}>
-                        {product.isActive ? "Active" : "Inactive"}
+                        {product.isActive ? "Activo" : "Inactivo"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-[var(--color-muted-foreground)]">
@@ -130,22 +132,47 @@ export function ProductsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {product.imageKey && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setModal({ type: "image", product })}
+                            aria-label={`Ver imagen de ${product.name}`}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                              <circle cx="9" cy="9" r="2" />
+                              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                            </svg>
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setModal({ type: "edit", product })}
-                          aria-label={`Edit ${product.name}`}
+                          aria-label={`Editar ${product.name}`}
                         >
-                          Edit
+                          Editar
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setModal({ type: "delete", product })}
-                          aria-label={`Delete ${product.name}`}
+                          aria-label={`Eliminar ${product.name}`}
                           className="text-[var(--color-destructive)] hover:text-[var(--color-destructive)]"
                         >
-                          Delete
+                          Eliminar
                         </Button>
                       </div>
                     </TableCell>
@@ -174,6 +201,16 @@ export function ProductsPage() {
 
       {modal?.type === "delete" && (
         <DeleteProductModal product={modal.product} open onClose={() => setModal(null)} />
+      )}
+
+      {modal?.type === "image" && (
+        <ProductImageModal
+          key={modal.product.id}
+          open
+          onClose={() => setModal(null)}
+          productName={modal.product.name}
+          imageKey={modal.product.imageKey!}
+        />
       )}
     </>
   );

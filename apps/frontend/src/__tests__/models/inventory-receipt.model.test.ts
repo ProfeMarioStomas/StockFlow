@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createInventoryReceiptSchema,
   updateInventoryReceiptSchema,
-} from "./inventory-receipt.model";
+} from "../../models/inventory-receipt.model";
 
 describe("createInventoryReceiptSchema", () => {
   const validItem = { productId: "00000000-0000-0000-0000-000000000001", quantity: 5 };
@@ -42,7 +42,7 @@ describe("createInventoryReceiptSchema", () => {
       items: [{ productId: "xxx", quantity: "10" }],
     });
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.items[0].quantity).toBe(10);
+    if (result.success) expect(result.data.items[0]!.quantity).toBe(10);
   });
 
   it("fails with zero quantity", () => {

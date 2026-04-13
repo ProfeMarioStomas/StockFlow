@@ -17,7 +17,7 @@ interface EditSaleModalProps {
 
 type ServerError = {
   message: string;
-  details?: { field: string; message: string }[];
+  details?: { field: string; message: string }[] | undefined;
 };
 
 export function EditSaleModal({ sale, open, onClose }: EditSaleModalProps) {
@@ -29,7 +29,8 @@ export function EditSaleModal({ sale, open, onClose }: EditSaleModalProps) {
       paymentMethod: sale.paymentMethod,
       isActive: sale.isActive,
     },
-    validators: { onSubmit: updateSaleSchema },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    validators: { onSubmit: updateSaleSchema as any },
     onSubmit: async ({ value }) => {
       setServerError(null);
       try {
@@ -42,7 +43,7 @@ export function EditSaleModal({ sale, open, onClose }: EditSaleModalProps) {
         }>;
         const error = axiosError.response?.data?.error;
         setServerError({
-          message: error?.message ?? "An unexpected error occurred.",
+          message: error?.message ?? "Error desconocido.",
           details: error?.details?.length ? error.details : undefined,
         });
       }
@@ -53,13 +54,13 @@ export function EditSaleModal({ sale, open, onClose }: EditSaleModalProps) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Edit Sale"
-      description="Update payment method or active status."
+      title="Editar venta"
+      description="Actualizar método de pago o estado activo."
       size="sm"
       footer={
         <>
           <Button variant="secondary" size="sm" type="button" onClick={onClose}>
-            Cancel
+            Cancelar
           </Button>
           <form.Subscribe selector={(s) => s.isSubmitting}>
             {(isSubmitting) => (
@@ -70,7 +71,7 @@ export function EditSaleModal({ sale, open, onClose }: EditSaleModalProps) {
                 form="edit-sale-form"
                 loading={isSubmitting}
               >
-                Save Changes
+                Guardar cambios
               </Button>
             )}
           </form.Subscribe>
@@ -108,7 +109,7 @@ export function EditSaleModal({ sale, open, onClose }: EditSaleModalProps) {
           {(field) => (
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-[var(--color-foreground)]">
-                Payment Method
+                Método de pago
               </label>
               <select
                 value={field.state.value}
@@ -143,7 +144,7 @@ export function EditSaleModal({ sale, open, onClose }: EditSaleModalProps) {
                 className="h-4 w-4 cursor-pointer rounded border-[var(--color-input)] accent-[var(--color-accent)]"
               />
               <Label htmlFor={`edit-sale-active-${sale.id}`} className="cursor-pointer">
-                Active sale
+                Venta activa
               </Label>
             </div>
           )}

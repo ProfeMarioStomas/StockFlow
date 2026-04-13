@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loginSchema } from "./auth.model";
+import { loginSchema } from "../../models/auth.model";
 
 describe("loginSchema", () => {
   it("passes with valid email and password", () => {

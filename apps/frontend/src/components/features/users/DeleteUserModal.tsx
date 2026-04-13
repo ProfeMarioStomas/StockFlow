@@ -24,7 +24,7 @@ export function DeleteUserModal({ user, open, onClose }: DeleteUserModalProps) {
       await queryClient.invalidateQueries({ queryKey: ["users"] });
       onClose();
     } catch {
-      setServerError("Failed to delete the user. Please try again.");
+      setServerError("No fue posible eliminar usuario. Por favor, inténtelo de nuevo.");
     } finally {
       setIsDeleting(false);
     }
@@ -34,23 +34,23 @@ export function DeleteUserModal({ user, open, onClose }: DeleteUserModalProps) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Delete User"
+      title="Eliminar Usuario"
       size="sm"
       footer={
         <>
           <Button variant="secondary" size="sm" onClick={onClose} disabled={isDeleting}>
-            Cancel
+            Cancelar
           </Button>
           <Button variant="destructive" size="sm" onClick={handleDelete} loading={isDeleting}>
-            Delete
+            Eliminar
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-3">
         <p className="text-sm text-[var(--color-foreground)]">
-          Are you sure you want to delete <span className="font-semibold">{user.name}</span>? This
-          action cannot be undone.
+          ¿Estás seguro de que quieres eliminar <span className="font-semibold">{user.name}</span>? Esta
+          acción no se puede deshacer.
         </p>
 
         {serverError && (

@@ -18,7 +18,7 @@ interface EditReceiptModalProps {
 
 type ServerError = {
   message: string;
-  details?: { field: string; message: string }[];
+  details?: { field: string; message: string }[] | undefined;
 };
 
 export function EditReceiptModal({ receipt, open, onClose }: EditReceiptModalProps) {
@@ -30,7 +30,8 @@ export function EditReceiptModal({ receipt, open, onClose }: EditReceiptModalPro
       notes: receipt.notes ?? "",
       isActive: receipt.isActive,
     },
-    validators: { onSubmit: updateInventoryReceiptSchema },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    validators: { onSubmit: updateInventoryReceiptSchema as any },
     onSubmit: async ({ value }) => {
       setServerError(null);
       try {
@@ -46,7 +47,7 @@ export function EditReceiptModal({ receipt, open, onClose }: EditReceiptModalPro
         }>;
         const error = axiosError.response?.data?.error;
         setServerError({
-          message: error?.message ?? "An unexpected error occurred.",
+          message: error?.message ?? "Error desconocido.",
           details: error?.details?.length ? error.details : undefined,
         });
       }
@@ -57,13 +58,13 @@ export function EditReceiptModal({ receipt, open, onClose }: EditReceiptModalPro
     <Modal
       open={open}
       onClose={onClose}
-      title="Edit Receipt"
-      description="Update notes or active status."
+      title="Editar Recibo"
+      description="Actualice las notas o el estado activo."
       size="sm"
       footer={
         <>
           <Button variant="secondary" size="sm" type="button" onClick={onClose}>
-            Cancel
+            Cancelar
           </Button>
           <form.Subscribe selector={(s) => s.isSubmitting}>
             {(isSubmitting) => (
@@ -74,7 +75,7 @@ export function EditReceiptModal({ receipt, open, onClose }: EditReceiptModalPro
                 form="edit-receipt-form"
                 loading={isSubmitting}
               >
-                Save Changes
+                Guardar Cambios
               </Button>
             )}
           </form.Subscribe>
@@ -111,8 +112,8 @@ export function EditReceiptModal({ receipt, open, onClose }: EditReceiptModalPro
         <form.Field name="notes">
           {(field) => (
             <Input
-              label="Notes"
-              placeholder="Optional"
+              label="Notas"
+              placeholder="Opcional"
               value={field.state.value}
               onBlur={field.handleBlur}
               onChange={(e) => field.handleChange(e.target.value)}
@@ -133,7 +134,7 @@ export function EditReceiptModal({ receipt, open, onClose }: EditReceiptModalPro
                 className="h-4 w-4 cursor-pointer rounded border-[var(--color-input)] accent-[var(--color-accent)]"
               />
               <Label htmlFor={`edit-receipt-active-${receipt.id}`} className="cursor-pointer">
-                Active receipt
+                Activar Recibo
               </Label>
             </div>
           )}

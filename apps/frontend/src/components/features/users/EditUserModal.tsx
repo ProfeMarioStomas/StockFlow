@@ -28,7 +28,8 @@ export function EditUserModal({ user, open, onClose }: EditUserModalProps) {
       role: user.role,
       isActive: user.isActive,
     },
-    validators: { onSubmit: updateUserSchema },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    validators: { onSubmit: updateUserSchema as any },
     onSubmit: async ({ value }) => {
       setServerError(null);
       try {
@@ -38,7 +39,7 @@ export function EditUserModal({ user, open, onClose }: EditUserModalProps) {
       } catch (err) {
         const axiosError = err as AxiosError<{ error: { message: string } }>;
         setServerError(
-          axiosError.response?.data?.error?.message ?? "An unexpected error occurred.",
+          axiosError.response?.data?.error?.message ?? "Error desconocido.",
         );
       }
     },
@@ -48,13 +49,13 @@ export function EditUserModal({ user, open, onClose }: EditUserModalProps) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Edit User"
-      description={`Editing ${user.name}`}
+      title="Editar Usuario"
+      description={`Editando ${user.name}`}
       size="md"
       footer={
         <>
           <Button variant="secondary" size="sm" type="button" onClick={onClose}>
-            Cancel
+            Cancelar
           </Button>
           <form.Subscribe selector={(s) => s.isSubmitting}>
             {(isSubmitting) => (
@@ -65,7 +66,7 @@ export function EditUserModal({ user, open, onClose }: EditUserModalProps) {
                 form="edit-user-form"
                 loading={isSubmitting}
               >
-                Save Changes
+                Guardar Cambios
               </Button>
             )}
           </form.Subscribe>
@@ -93,7 +94,7 @@ export function EditUserModal({ user, open, onClose }: EditUserModalProps) {
         <form.Field name="name">
           {(field) => (
             <Input
-              label="Name"
+              label="Nombre"
               required
               value={field.state.value ?? ""}
               onBlur={field.handleBlur}
@@ -122,7 +123,7 @@ export function EditUserModal({ user, open, onClose }: EditUserModalProps) {
           {(field) => (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`edit-role-${user.id}`} required>
-                Role
+                Rol
               </Label>
               <select
                 id={`edit-role-${user.id}`}
@@ -140,8 +141,8 @@ export function EditUserModal({ user, open, onClose }: EditUserModalProps) {
                     : "border-[var(--color-input)] hover:border-[var(--color-secondary)]",
                 )}
               >
-                <option value="seller">Seller</option>
-                <option value="admin">Admin</option>
+                <option value="seller">Vendedor</option>
+                <option value="admin">Administrador</option>
               </select>
               {field.state.meta.errors[0] && (
                 <p role="alert" className="text-xs text-[var(--color-error-text)]">
@@ -164,7 +165,7 @@ export function EditUserModal({ user, open, onClose }: EditUserModalProps) {
                 className="h-4 w-4 cursor-pointer rounded border-[var(--color-input)] accent-[var(--color-accent)]"
               />
               <Label htmlFor={`edit-active-${user.id}`} className="cursor-pointer">
-                Active account
+                Cuenta activa
               </Label>
             </div>
           )}

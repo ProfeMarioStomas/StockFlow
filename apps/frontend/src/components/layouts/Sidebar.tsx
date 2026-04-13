@@ -11,7 +11,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     to: "/",
-    label: "Dashboard",
+    label: "Escritorio",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -34,7 +34,7 @@ const navItems: NavItem[] = [
   },
   {
     to: "/products",
-    label: "Products",
+    label: "Productos",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -57,7 +57,7 @@ const navItems: NavItem[] = [
   },
   {
     to: "/sales",
-    label: "Sales",
+    label: "Ventas",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -78,7 +78,7 @@ const navItems: NavItem[] = [
   },
   {
     to: "/inventory-receipts",
-    label: "Inventory",
+    label: "Inventario",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -99,7 +99,7 @@ const navItems: NavItem[] = [
   },
   {
     to: "/users",
-    label: "Users",
+    label: "Usuarios",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"

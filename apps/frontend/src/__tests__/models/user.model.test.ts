@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createUserSchema, updateUserSchema } from "./user.model";
+import { createUserSchema, updateUserSchema } from "../../models/user.model";
 
 describe("createUserSchema", () => {
   const valid = {

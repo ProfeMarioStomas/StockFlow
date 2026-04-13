@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createProductSchema, updateProductSchema } from "./product.model";
+import { createProductSchema, updateProductSchema } from "../../models/product.model";
 
 describe("createProductSchema", () => {
   const valid = { name: "Widget Pro", barcode: "7501234567890", price: 19.99, stock: 100 };

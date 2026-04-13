@@ -10,19 +10,19 @@ export const paymentMethodLabels: Record<PaymentMethod, string> = {
 };
 
 export const createSaleItemSchema = z.object({
-  productId: z.string().min(1, { error: "Product is required" }),
+  productId: z.string().min(1, { error: "Producto requerido" }),
   quantity: z.coerce
-    .number({ error: "Quantity must be a number" })
-    .int({ error: "Quantity must be a whole number" })
-    .positive({ error: "Quantity must be greater than 0" }),
+    .number({ error: "Cantidad debe ser un número" })
+    .int({ error: "Cantidad debe ser un número entero" })
+    .positive({ error: "Cantidad debe ser mayor que 0" }),
   unitPrice: z.coerce
-    .number({ error: "Unit price must be a number" })
-    .positive({ error: "Unit price must be greater than 0" }),
+    .number({ error: "Precio unitario debe ser un número" })
+    .positive({ error: "Precio unitario debe ser mayor que 0" }),
 });
 
 export const createSaleSchema = z.object({
-  paymentMethod: z.enum(PAYMENT_METHODS, { error: "Payment method is required" }),
-  items: z.array(createSaleItemSchema).min(1, { error: "At least one item is required" }),
+  paymentMethod: z.enum(PAYMENT_METHODS, { error: "Método de pago requerido" }),
+  items: z.array(createSaleItemSchema).min(1, { error: "Al menos un producto es requerido" }),
 });
 
 export const updateSaleSchema = z.object({

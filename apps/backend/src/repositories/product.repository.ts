@@ -68,6 +68,7 @@ export function createProductRepository(db: Database) {
       costPrice?: number;
       stock?: number;
       criticalStock?: number;
+      imageKey?: string | null;
     }): Promise<ProductRecord> {
       const rows = await db
         .insert(products)
@@ -78,6 +79,7 @@ export function createProductRepository(db: Database) {
           ...(data.costPrice !== undefined ? { costPrice: String(data.costPrice) } : {}),
           ...(data.stock !== undefined ? { stock: data.stock } : {}),
           ...(data.criticalStock !== undefined ? { criticalStock: data.criticalStock } : {}),
+          ...(data.imageKey !== undefined ? { imageKey: data.imageKey } : {}),
         })
         .returning();
       return toProductRecord(rows[0]!);
@@ -92,6 +94,7 @@ export function createProductRepository(db: Database) {
         costPrice: number;
         criticalStock: number;
         isActive: boolean;
+        imageKey: string | null;
       }>,
     ): Promise<ProductRecord | undefined> {
       const updateData: Record<string, unknown> = {};
@@ -101,6 +104,7 @@ export function createProductRepository(db: Database) {
       if (data.costPrice !== undefined) updateData.costPrice = String(data.costPrice);
       if (data.criticalStock !== undefined) updateData.criticalStock = data.criticalStock;
       if (data.isActive !== undefined) updateData.isActive = data.isActive;
+      if (data.imageKey !== undefined) updateData.imageKey = data.imageKey;
 
       const rows = await db.update(products).set(updateData).where(eq(products.id, id)).returning();
       return rows[0] ? toProductRecord(rows[0]) : undefined;

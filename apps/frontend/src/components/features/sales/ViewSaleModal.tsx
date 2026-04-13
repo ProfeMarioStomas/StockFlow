@@ -12,7 +12,7 @@ interface ViewSaleModalProps {
   onClose: () => void;
 }
 
-const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+const fmt = new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" });
 
 export function ViewSaleModal({ sale, open, onClose }: ViewSaleModalProps) {
   const { data: products = [] } = useQuery({
@@ -28,12 +28,12 @@ export function ViewSaleModal({ sale, open, onClose }: ViewSaleModalProps) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Sale Details"
-      description={`Created on ${new Date(sale.createdAt).toLocaleString()}`}
+      title="Detalle de venta"
+      description={`Creada el ${new Date(sale.createdAt).toLocaleString()}`}
       size="lg"
       footer={
         <Button variant="secondary" size="sm" onClick={onClose}>
-          Close
+          Cerrar
         </Button>
       }
     >
@@ -47,16 +47,16 @@ export function ViewSaleModal({ sale, open, onClose }: ViewSaleModalProps) {
             </p>
           </div>
           <div>
-            <p className="text-[var(--color-muted-foreground)]">Payment</p>
+            <p className="text-[var(--color-muted-foreground)]">Método de pago</p>
             <p className="mt-1 font-medium text-[var(--color-foreground)]">
               {paymentMethodLabels[sale.paymentMethod]}
             </p>
           </div>
           <div>
-            <p className="text-[var(--color-muted-foreground)]">Status</p>
+            <p className="text-[var(--color-muted-foreground)]">Estado</p>
             <div className="mt-1">
               <Badge variant={sale.isActive ? "success" : "destructive"}>
-                {sale.isActive ? "Active" : "Voided"}
+                {sale.isActive ? "Activa" : "Anulada"}
               </Badge>
             </div>
           </div>
@@ -68,13 +68,13 @@ export function ViewSaleModal({ sale, open, onClose }: ViewSaleModalProps) {
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-[var(--color-muted)]/40">
                 <th className="px-4 py-2.5 text-left font-medium text-[var(--color-muted-foreground)]">
-                  Product
+                  Producto
                 </th>
                 <th className="px-4 py-2.5 text-right font-medium text-[var(--color-muted-foreground)]">
-                  Qty
+                  Ctd
                 </th>
                 <th className="px-4 py-2.5 text-right font-medium text-[var(--color-muted-foreground)]">
-                  Unit Price
+                  Precio Unitario
                 </th>
                 <th className="px-4 py-2.5 text-right font-medium text-[var(--color-muted-foreground)]">
                   Subtotal

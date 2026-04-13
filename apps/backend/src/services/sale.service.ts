@@ -97,46 +97,45 @@ export function createSaleService(db: Database) {
     },
 
     async createSale(input: CreateSaleInput, sellerId: string): Promise<SaleResponse> {
-      return db.transaction(async (tx) => {
-        // Validate each item: product must exist and have sufficient stock
-        for (const item of input.items) {
-          const productRows = await tx
-            .select()
-            .from(products)
-            .where(eq(products.id, item.productId));
+      // neon-http does not support db.transaction(). Multi-table writes use
+      // db.batch() which Neon executes atomically in a single HTTP round-trip.
 
-          if (productRows.length === 0) {
-            throw new HTTPException(404, {
-              message: `Product ${item.productId} not found`,
-            });
-          }
-
-          const product = productRows[0]!;
-          if (product.stock < item.quantity) {
-            throw new HTTPException(409, {
-              message: `Insufficient stock for product ${item.productId}`,
-            });
-          }
+      // Validate products exist and have sufficient stock (parallel reads)
+      const productChecks = await Promise.all(
+        input.items.map((item) =>
+          db.select().from(products).where(eq(products.id, item.productId)),
+        ),
+      );
+      for (let i = 0; i < input.items.length; i++) {
+        const rows = productChecks[i]!;
+        if (rows.length === 0) {
+          throw new HTTPException(404, {
+            message: `Product ${input.items[i]!.productId} not found`,
+          });
         }
+        const product = rows[0]!;
+        if (product.stock < input.items[i]!.quantity) {
+          throw new HTTPException(409, {
+            message: `Insufficient stock for product ${input.items[i]!.productId}`,
+          });
+        }
+      }
 
-        // Calculate total
-        const totalAmount = input.items.reduce(
-          (sum, item) => sum + item.quantity * item.unitPrice,
-          0,
-        );
+      // Calculate total
+      const totalAmount = input.items.reduce(
+        (sum, item) => sum + item.quantity * item.unitPrice,
+        0,
+      );
 
-        // Insert sale
-        const [saleRow] = await tx
-          .insert(sales)
-          .values({
-            totalAmount: String(totalAmount),
-            paymentMethod: input.paymentMethod,
-            sellerId,
-          })
-          .returning();
+      // Insert sale header
+      const [saleRow] = await db
+        .insert(sales)
+        .values({ totalAmount: String(totalAmount), paymentMethod: input.paymentMethod, sellerId })
+        .returning();
 
-        // Insert sale details
-        const detailRows = await tx
+      // Insert details + decrement stock atomically via batch
+      const batchResults = await db.batch([
+        db
           .insert(saleDetails)
           .values(
             input.items.map((item) => ({
@@ -146,19 +145,19 @@ export function createSaleService(db: Database) {
               unitPrice: String(item.unitPrice),
             })),
           )
-          .returning();
-
-        // Decrement stock per product
-        for (const item of input.items) {
-          await tx
+          .returning(),
+        ...input.items.map((item) =>
+          db
             .update(products)
             .set({ stock: sql`${products.stock} - ${item.quantity}` })
-            .where(eq(products.id, item.productId));
-        }
+            .where(eq(products.id, item.productId)),
+        ),
+      ] as const);
 
-        cache.invalidate("sales:list");
-        return composeSale(toSaleRecord(saleRow!), detailRows.map(toSaleDetailRecord));
-      });
+      const detailRows = batchResults[0] as (typeof saleDetails.$inferSelect)[];
+
+      cache.invalidate("sales:list");
+      return composeSale(toSaleRecord(saleRow!), detailRows.map(toSaleDetailRecord));
     },
 
     async updateSaleHeader(id: string, input: UpdateSaleHeaderInput): Promise<SaleResponse> {
@@ -192,82 +191,75 @@ export function createSaleService(db: Database) {
       detailId: string,
       input: UpdateSaleDetailInput,
     ): Promise<SaleResponse> {
-      return db.transaction(async (tx) => {
-        // Check detail exists and belongs to sale
-        const existingRows = await tx
-          .select()
-          .from(saleDetails)
-          .where(and(eq(saleDetails.id, detailId), eq(saleDetails.saleId, saleId)));
+      // neon-http does not support db.transaction().
+      const existingRows = await db
+        .select()
+        .from(saleDetails)
+        .where(and(eq(saleDetails.id, detailId), eq(saleDetails.saleId, saleId)));
 
-        if (existingRows.length === 0) {
-          throw new HTTPException(404, { message: "Sale detail not found" });
-        }
+      if (existingRows.length === 0) {
+        throw new HTTPException(404, { message: "Sale detail not found" });
+      }
 
-        // Build update payload
-        const updateData: Record<string, unknown> = {};
-        if (input.quantity !== undefined) updateData.quantity = input.quantity;
-        if (input.unitPrice !== undefined) updateData.unitPrice = String(input.unitPrice);
+      // Build update payload
+      const updateData: Record<string, unknown> = {};
+      if (input.quantity !== undefined) updateData.quantity = input.quantity;
+      if (input.unitPrice !== undefined) updateData.unitPrice = String(input.unitPrice);
 
-        // Update the detail
-        await tx
-          .update(saleDetails)
-          .set(updateData)
-          .where(eq(saleDetails.id, detailId))
-          .returning();
+      // Apply update
+      await db.update(saleDetails).set(updateData).where(eq(saleDetails.id, detailId));
 
-        // Fetch all details after update to recalculate total
-        const allDetailRows = await tx
-          .select()
-          .from(saleDetails)
-          .where(eq(saleDetails.saleId, saleId));
+      // Fetch all details after update to recalculate total
+      const allDetailRows = await db
+        .select()
+        .from(saleDetails)
+        .where(eq(saleDetails.saleId, saleId));
 
-        const newTotal = allDetailRows.reduce(
-          (sum, d) => sum + d.quantity * parseFloat(d.unitPrice),
-          0,
-        );
+      const newTotal = allDetailRows.reduce(
+        (sum, d) => sum + d.quantity * parseFloat(d.unitPrice),
+        0,
+      );
 
-        // Update sale totalAmount
-        const [updatedSaleRow] = await tx
-          .update(sales)
-          .set({ totalAmount: String(newTotal) })
-          .where(eq(sales.id, saleId))
-          .returning();
+      // Update sale total
+      const [updatedSaleRow] = await db
+        .update(sales)
+        .set({ totalAmount: String(newTotal) })
+        .where(eq(sales.id, saleId))
+        .returning();
 
-        cache.invalidate(`sales:${saleId}`);
-        cache.invalidate("sales:list");
+      cache.invalidate(`sales:${saleId}`);
+      cache.invalidate("sales:list");
 
-        if (!updatedSaleRow) {
-          throw new HTTPException(404, { message: "Sale not found" });
-        }
-        return composeSale(toSaleRecord(updatedSaleRow), allDetailRows.map(toSaleDetailRecord));
-      });
+      if (!updatedSaleRow) {
+        throw new HTTPException(404, { message: "Sale not found" });
+      }
+      return composeSale(toSaleRecord(updatedSaleRow), allDetailRows.map(toSaleDetailRecord));
     },
 
     async deleteSale(id: string): Promise<void> {
-      await db.transaction(async (tx) => {
-        // Check sale exists
-        const saleRows = await tx.select().from(sales).where(eq(sales.id, id));
-        if (saleRows.length === 0) {
-          throw new HTTPException(404, { message: "Sale not found" });
-        }
+      // neon-http does not support db.transaction().
+      const [saleRows, detailRows] = await Promise.all([
+        db.select().from(sales).where(eq(sales.id, id)),
+        db.select().from(saleDetails).where(eq(saleDetails.saleId, id)),
+      ]);
 
-        // Get all details to revert stock
-        const detailRows = await tx.select().from(saleDetails).where(eq(saleDetails.saleId, id));
+      if (saleRows.length === 0) {
+        throw new HTTPException(404, { message: "Sale not found" });
+      }
 
-        // Soft-delete the sale
-        await tx.update(sales).set({ isActive: false }).where(eq(sales.id, id));
-
-        // Revert stock per product
-        for (const detail of detailRows) {
-          await tx
+      // Soft-delete sale + revert stock atomically via batch
+      await db.batch([
+        db.update(sales).set({ isActive: false }).where(eq(sales.id, id)),
+        ...detailRows.map((detail) =>
+          db
             .update(products)
             .set({ stock: sql`${products.stock} + ${detail.quantity}` })
-            .where(eq(products.id, detail.productId));
-        }
+            .where(eq(products.id, detail.productId)),
+        ),
+      ] as const);
 
-        cache.invalidate(`sales:${id}`);
-        cache.invalidate("sales:list");
-      });
+      cache.invalidate(`sales:${id}`);
+      cache.invalidate("sales:list");
     },
   };
 }

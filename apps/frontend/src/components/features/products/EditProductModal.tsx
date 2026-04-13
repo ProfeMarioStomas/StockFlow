@@ -20,7 +20,7 @@ const R2_BASE_URL = "https://pub-f0bcf28b115849ffbbb6ac15fb70a6c2.r2.dev";
 
 type ServerError = {
   message: string;
-  details?: { field: string; message: string }[];
+  details?: { field: string; message: string }[] | undefined;
 };
 
 export function EditProductModal({ product, open, onClose }: EditProductModalProps) {
@@ -50,7 +50,8 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
       criticalStock: (product.criticalStock ?? undefined) as number | undefined,
       isActive: product.isActive,
     },
-    validators: { onSubmit: updateProductSchema },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    validators: { onSubmit: updateProductSchema as any },
     onSubmit: async ({ value }) => {
       setServerError(null);
       try {
@@ -62,7 +63,7 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
         // TanStack Form passes raw form state (HTML inputs return strings).
         // Parse through the Zod schema to coerce numeric fields before sending to the API.
         const coerced = updateProductSchema.parse(value);
-        await productService.updateProduct(product.id, { ...coerced, imageKey });
+        await productService.updateProduct(product.id, { ...coerced, ...(imageKey ? { imageKey } : {}) });
         await queryClient.invalidateQueries({ queryKey: ["products"] });
         onClose();
       } catch (err) {
@@ -71,7 +72,7 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
         }>;
         const error = axiosError.response?.data?.error;
         setServerError({
-          message: error?.message ?? "An unexpected error occurred.",
+          message: error?.message ?? "Error desconocido.",
           details: error?.details?.length ? error.details : undefined,
         });
       }
@@ -82,13 +83,13 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
     <Modal
       open={open}
       onClose={onClose}
-      title="Edit Product"
-      description={`Editing ${product.name}`}
+      title="Editar producto"
+      description={`Editando ${product.name}`}
       size="md"
       footer={
         <>
           <Button variant="secondary" size="sm" type="button" onClick={onClose}>
-            Cancel
+            Cancelar
           </Button>
           <form.Subscribe selector={(s) => s.isSubmitting}>
             {(isSubmitting) => (
@@ -99,7 +100,7 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
                 form="edit-product-form"
                 loading={isSubmitting}
               >
-                Save Changes
+                Guardar cambios
               </Button>
             )}
           </form.Subscribe>
@@ -136,7 +137,7 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
         <form.Field name="name">
           {(field) => (
             <Input
-              label="Name"
+              label="Nombre"
               required
               value={field.state.value ?? ""}
               onBlur={field.handleBlur}
@@ -149,7 +150,7 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
         <form.Field name="barcode">
           {(field) => (
             <Input
-              label="Barcode"
+              label="Código de barras"
               required
               value={field.state.value ?? ""}
               onBlur={field.handleBlur}
@@ -163,7 +164,7 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
           <form.Field name="price">
             {(field) => (
               <Input
-                label="Sale Price"
+                label="Precio de venta"
                 type="number"
                 required
                 min={0}
@@ -179,7 +180,7 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
           <form.Field name="costPrice">
             {(field) => (
               <Input
-                label="Cost Price"
+                label="Precio de costo"
                 type="number"
                 placeholder="0.00"
                 min={0}
@@ -200,12 +201,12 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
         <form.Field name="criticalStock">
           {(field) => (
             <Input
-              label="Critical Stock"
+              label="Stock Crítico"
               type="number"
               placeholder="0"
               min={0}
               step={1}
-              helperText="Alert threshold. Stock is managed through Inventory Receipts."
+              helperText="Alerta para límite. El stock se gestiona a través de Ingreso/Ventas."
               value={(field.state.value ?? "") as unknown as string}
               onBlur={field.handleBlur}
               onChange={(e) =>
@@ -230,7 +231,7 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
                 className="h-4 w-4 cursor-pointer rounded border-[var(--color-input)] accent-[var(--color-accent)]"
               />
               <Label htmlFor={`edit-product-active-${product.id}`} className="cursor-pointer">
-                Active product
+                Producto activo
               </Label>
             </div>
           )}
@@ -238,7 +239,7 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-[var(--color-foreground)]">
-            Product Image
+            Imagen del producto
           </label>
           {(imagePreview ?? currentImageUrl) && (
             <img

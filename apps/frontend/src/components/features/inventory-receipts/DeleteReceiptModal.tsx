@@ -26,7 +26,7 @@ export function DeleteReceiptModal({ receipt, open, onClose }: DeleteReceiptModa
       await queryClient.invalidateQueries({ queryKey: ["products"] });
       onClose();
     } catch {
-      setServerError("Failed to void the receipt. Please try again.");
+      setServerError("Falla al anular el recibo. Por favor, inténtelo de nuevo.");
     } finally {
       setIsDeleting(false);
     }
@@ -39,27 +39,27 @@ export function DeleteReceiptModal({ receipt, open, onClose }: DeleteReceiptModa
     <Modal
       open={open}
       onClose={onClose}
-      title="Void Receipt"
+      title="Anular Recibo"
       size="sm"
       footer={
         <>
           <Button variant="secondary" size="sm" onClick={onClose} disabled={isDeleting}>
-            Cancel
+            Cancelar
           </Button>
           <Button variant="destructive" size="sm" onClick={handleVoid} loading={isDeleting}>
-            Void Receipt
+            Anular Recibo
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-3">
         <p className="text-sm text-[var(--color-foreground)]">
-          Are you sure you want to void this receipt?{" "}
+          ¿Está seguro de que desea anular este recibo?{" "}
           <span className="font-medium">
-            {totalUnits} {totalUnits === 1 ? "unit" : "units"} across {itemCount}{" "}
-            {itemCount === 1 ? "product" : "products"}
+            {totalUnits} {totalUnits === 1 ? "unidad" : "unidades"} de {itemCount}{" "}
+            {itemCount === 1 ? "producto" : "productos"}
           </span>{" "}
-          will be deducted from stock. This action cannot be undone.
+          serán reducidas del stock. Esta acción no se puede deshacer.
         </p>
 
         {serverError && (

@@ -1,16 +1,16 @@
 import { z } from "zod";
 
 export const createReceiptItemSchema = z.object({
-  productId: z.string().min(1, { error: "Product is required" }),
+  productId: z.string().min(1, { error: "Producto requerido" }),
   quantity: z.coerce
-    .number({ error: "Quantity must be a number" })
-    .int({ error: "Quantity must be a whole number" })
-    .positive({ error: "Quantity must be greater than 0" }),
+    .number({ error: "Cantidad debe ser un número" })
+    .int({ error: "Cantidad debe ser un número entero" })
+    .positive({ error: "Cantidad debe ser mayor que 0" }),
 });
 
 export const createInventoryReceiptSchema = z.object({
   notes: z.string().optional(),
-  items: z.array(createReceiptItemSchema).min(1, { error: "At least one item is required" }),
+  items: z.array(createReceiptItemSchema).min(1, { error: "Al menos un producto es requerido" }),
 });
 
 export const updateInventoryReceiptSchema = z.object({

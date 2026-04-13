@@ -70,6 +70,7 @@ export function createProductService(db: Database) {
         ...(input.costPrice !== undefined ? { costPrice: input.costPrice } : {}),
         ...(input.stock !== undefined ? { stock: input.stock } : {}),
         ...(input.criticalStock !== undefined ? { criticalStock: input.criticalStock } : {}),
+        ...(input.imageKey !== undefined ? { imageKey: input.imageKey } : {}),
       });
 
       cache.invalidate("products:list");
@@ -89,6 +90,7 @@ export function createProductService(db: Database) {
         costPrice: number;
         criticalStock: number;
         isActive: boolean;
+        imageKey: string | null;
       }> = {};
       if (input.name !== undefined) updateData.name = input.name;
       if (input.barcode !== undefined) updateData.barcode = input.barcode;
@@ -96,6 +98,7 @@ export function createProductService(db: Database) {
       if (input.costPrice !== undefined) updateData.costPrice = input.costPrice;
       if (input.criticalStock !== undefined) updateData.criticalStock = input.criticalStock;
       if (input.isActive !== undefined) updateData.isActive = input.isActive;
+      if (input.imageKey !== undefined) updateData.imageKey = input.imageKey;
 
       const updated = await repo.update(id, updateData);
       if (!updated) {

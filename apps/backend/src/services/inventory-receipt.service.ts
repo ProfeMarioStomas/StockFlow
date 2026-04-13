@@ -108,32 +108,32 @@ export function createInventoryReceiptService(db: Database) {
       input: CreateInventoryReceiptInput,
       receivedById: string,
     ): Promise<InventoryReceiptResponse> {
-      return db.transaction(async (tx) => {
-        // Validate each item: product must exist (no stock check — receiving always valid)
-        for (const item of input.items) {
-          const productRows = await tx
-            .select()
-            .from(products)
-            .where(eq(products.id, item.productId));
+      // neon-http does not support db.transaction(). Multi-table writes use
+      // db.batch() which Neon executes atomically in a single HTTP round-trip.
 
-          if (productRows.length === 0) {
-            throw new HTTPException(404, {
-              message: `Product ${item.productId} not found`,
-            });
-          }
+      // Validate products exist (parallel reads)
+      const productChecks = await Promise.all(
+        input.items.map((item) =>
+          db.select().from(products).where(eq(products.id, item.productId)),
+        ),
+      );
+      for (let i = 0; i < input.items.length; i++) {
+        if (productChecks[i]!.length === 0) {
+          throw new HTTPException(404, {
+            message: `Product ${input.items[i]!.productId} not found`,
+          });
         }
+      }
 
-        // Insert receipt header
-        const [receiptRow] = await tx
-          .insert(inventoryReceipts)
-          .values({
-            notes: input.notes ?? null,
-            receivedById,
-          })
-          .returning();
+      // Insert receipt header
+      const [receiptRow] = await db
+        .insert(inventoryReceipts)
+        .values({ notes: input.notes ?? null, receivedById })
+        .returning();
 
-        // Insert receipt details
-        const detailRows = await tx
+      // Insert details + update stock atomically via batch
+      const batchResults = await db.batch([
+        db
           .insert(inventoryReceiptDetails)
           .values(
             input.items.map((item) => ({
@@ -142,22 +142,22 @@ export function createInventoryReceiptService(db: Database) {
               quantity: item.quantity,
             })),
           )
-          .returning();
-
-        // Increment stock per product
-        for (const item of input.items) {
-          await tx
+          .returning(),
+        ...input.items.map((item) =>
+          db
             .update(products)
             .set({ stock: sql`${products.stock} + ${item.quantity}` })
-            .where(eq(products.id, item.productId));
-        }
+            .where(eq(products.id, item.productId)),
+        ),
+      ] as const);
 
-        cache.invalidate("receipts:list");
-        return composeReceipt(
-          toInventoryReceiptRecord(receiptRow!),
-          detailRows.map(toInventoryReceiptDetailRecord),
-        );
-      });
+      const detailRows = batchResults[0] as (typeof inventoryReceiptDetails.$inferSelect)[];
+
+      cache.invalidate("receipts:list");
+      return composeReceipt(
+        toInventoryReceiptRecord(receiptRow!),
+        detailRows.map(toInventoryReceiptDetailRecord),
+      );
     },
 
     async updateReceiptHeader(
@@ -191,99 +191,85 @@ export function createInventoryReceiptService(db: Database) {
       detailId: string,
       input: UpdateReceiptDetailInput,
     ): Promise<InventoryReceiptResponse> {
-      return db.transaction(async (tx) => {
-        // Check detail exists and belongs to receipt
-        const existingRows = await tx
-          .select()
-          .from(inventoryReceiptDetails)
-          .where(
-            and(
-              eq(inventoryReceiptDetails.id, detailId),
-              eq(inventoryReceiptDetails.receiptId, receiptId),
-            ),
-          );
+      // neon-http does not support db.transaction().
+      const existingRows = await db
+        .select()
+        .from(inventoryReceiptDetails)
+        .where(
+          and(
+            eq(inventoryReceiptDetails.id, detailId),
+            eq(inventoryReceiptDetails.receiptId, receiptId),
+          ),
+        );
 
-        if (existingRows.length === 0) {
-          throw new HTTPException(404, { message: "Receipt detail not found" });
-        }
+      if (existingRows.length === 0) {
+        throw new HTTPException(404, { message: "Receipt detail not found" });
+      }
 
-        const existing = existingRows[0]!;
-        const oldQuantity = existing.quantity;
-        const newQuantity = input.quantity ?? oldQuantity;
+      const existing = existingRows[0]!;
+      const oldQuantity = existing.quantity;
+      const newQuantity = input.quantity ?? oldQuantity;
+      const delta = newQuantity - oldQuantity;
 
-        // Update detail
-        await tx
+      // Update detail + apply stock delta atomically via batch
+      await db.batch([
+        db
           .update(inventoryReceiptDetails)
           .set({ quantity: newQuantity })
-          .where(eq(inventoryReceiptDetails.id, detailId));
-
-        // Apply stock delta
-        const delta = newQuantity - oldQuantity;
-        await tx
+          .where(eq(inventoryReceiptDetails.id, detailId)),
+        db
           .update(products)
           .set({ stock: sql`${products.stock} + ${delta}` })
-          .where(eq(products.id, existing.productId));
+          .where(eq(products.id, existing.productId)),
+      ] as const);
 
-        // Fetch all details and receipt header for response
-        const allDetailRows = await tx
+      // Fetch updated state for response
+      const [allDetailRows, receiptRows] = await Promise.all([
+        db
           .select()
           .from(inventoryReceiptDetails)
-          .where(eq(inventoryReceiptDetails.receiptId, receiptId));
+          .where(eq(inventoryReceiptDetails.receiptId, receiptId)),
+        db.select().from(inventoryReceipts).where(eq(inventoryReceipts.id, receiptId)),
+      ]);
 
-        const [receiptRow] = await tx
-          .select()
-          .from(inventoryReceipts)
-          .where(eq(inventoryReceipts.id, receiptId));
+      const receiptRow = receiptRows[0];
+      if (!receiptRow) {
+        throw new HTTPException(404, { message: "Inventory receipt not found" });
+      }
 
-        if (!receiptRow) {
-          throw new HTTPException(404, { message: "Inventory receipt not found" });
-        }
+      cache.invalidate(`receipts:${receiptId}`);
+      cache.invalidate("receipts:list");
 
-        cache.invalidate(`receipts:${receiptId}`);
-        cache.invalidate("receipts:list");
-
-        return composeReceipt(
-          toInventoryReceiptRecord(receiptRow),
-          allDetailRows.map(toInventoryReceiptDetailRecord),
-        );
-      });
+      return composeReceipt(
+        toInventoryReceiptRecord(receiptRow),
+        allDetailRows.map(toInventoryReceiptDetailRecord),
+      );
     },
 
     async deleteReceipt(id: string): Promise<void> {
-      await db.transaction(async (tx) => {
-        // Check receipt exists
-        const receiptRows = await tx
-          .select()
-          .from(inventoryReceipts)
-          .where(eq(inventoryReceipts.id, id));
+      // neon-http does not support db.transaction().
+      const [receiptRows, detailRows] = await Promise.all([
+        db.select().from(inventoryReceipts).where(eq(inventoryReceipts.id, id)),
+        db.select().from(inventoryReceiptDetails).where(eq(inventoryReceiptDetails.receiptId, id)),
+      ]);
 
-        if (receiptRows.length === 0) {
-          throw new HTTPException(404, { message: "Inventory receipt not found" });
-        }
+      if (receiptRows.length === 0) {
+        throw new HTTPException(404, { message: "Inventory receipt not found" });
+      }
 
-        // Get all details to revert stock
-        const detailRows = await tx
-          .select()
-          .from(inventoryReceiptDetails)
-          .where(eq(inventoryReceiptDetails.receiptId, id));
-
-        // Soft-delete the receipt
-        await tx
-          .update(inventoryReceipts)
-          .set({ isActive: false })
-          .where(eq(inventoryReceipts.id, id));
-
-        // Revert stock per product
-        for (const detail of detailRows) {
-          await tx
+      // Soft-delete receipt + revert stock atomically via batch
+      await db.batch([
+        db.update(inventoryReceipts).set({ isActive: false }).where(eq(inventoryReceipts.id, id)),
+        ...detailRows.map((detail) =>
+          db
             .update(products)
             .set({ stock: sql`${products.stock} - ${detail.quantity}` })
-            .where(eq(products.id, detail.productId));
-        }
+            .where(eq(products.id, detail.productId)),
+        ),
+      ] as const);
 
-        cache.invalidate(`receipts:${id}`);
-        cache.invalidate("receipts:list");
-      });
+      cache.invalidate(`receipts:${id}`);
+      cache.invalidate("receipts:list");
     },
   };
 }

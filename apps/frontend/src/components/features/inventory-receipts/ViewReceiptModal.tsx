@@ -27,12 +27,12 @@ export function ViewReceiptModal({ receipt, open, onClose }: ViewReceiptModalPro
     <Modal
       open={open}
       onClose={onClose}
-      title="Receipt Details"
-      description={`Created on ${new Date(receipt.createdAt).toLocaleString()}`}
+      title="Detalles del Recibo"
+      description={`Creado el ${new Date(receipt.createdAt).toLocaleString()}`}
       size="lg"
       footer={
         <Button variant="secondary" size="sm" onClick={onClose}>
-          Close
+          Cerrar
         </Button>
       }
     >
@@ -40,20 +40,20 @@ export function ViewReceiptModal({ receipt, open, onClose }: ViewReceiptModalPro
         {/* Header info */}
         <div className="grid grid-cols-2 gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] p-3 text-sm">
           <div>
-            <p className="text-[var(--color-muted-foreground)]">Status</p>
+            <p className="text-[var(--color-muted-foreground)]">Estado</p>
             <div className="mt-1">
               <Badge variant={receipt.isActive ? "success" : "destructive"}>
-                {receipt.isActive ? "Active" : "Voided"}
+                {receipt.isActive ? "Activo" : "Anulado"}
               </Badge>
             </div>
           </div>
           <div>
-            <p className="text-[var(--color-muted-foreground)]">Total Units</p>
+            <p className="text-[var(--color-muted-foreground)]">Unidades Totales</p>
             <p className="mt-1 font-medium text-[var(--color-foreground)]">{totalUnits}</p>
           </div>
           {receipt.notes && (
             <div className="col-span-2">
-              <p className="text-[var(--color-muted-foreground)]">Notes</p>
+              <p className="text-[var(--color-muted-foreground)]">Notas</p>
               <p className="mt-1 text-[var(--color-foreground)]">{receipt.notes}</p>
             </div>
           )}
@@ -65,10 +65,10 @@ export function ViewReceiptModal({ receipt, open, onClose }: ViewReceiptModalPro
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-[var(--color-muted)]/40">
                 <th className="px-4 py-2.5 text-left font-medium text-[var(--color-muted-foreground)]">
-                  Product
+                  Producto
                 </th>
                 <th className="px-4 py-2.5 text-right font-medium text-[var(--color-muted-foreground)]">
-                  Quantity
+                  Cantidad
                 </th>
               </tr>
             </thead>
