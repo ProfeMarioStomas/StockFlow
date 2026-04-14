@@ -49,8 +49,8 @@ export function DeleteProductModal({ product, open, onClose }: DeleteProductModa
     >
       <div className="flex flex-col gap-3">
         <p className="text-sm text-[var(--color-foreground)]">
-          ¿Estás seguro de que quieres eliminar <span className="font-semibold">{product.name}</span>?
-          Esta acción no se puede deshacer.
+          ¿Estás seguro de que quieres eliminar{" "}
+          <span className="font-semibold">{product.name}</span>? Esta acción no se puede deshacer.
         </p>
 
         {serverError && (

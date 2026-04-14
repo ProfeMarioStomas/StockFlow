@@ -49,8 +49,8 @@ export function DeleteUserModal({ user, open, onClose }: DeleteUserModalProps) {
     >
       <div className="flex flex-col gap-3">
         <p className="text-sm text-[var(--color-foreground)]">
-          ¿Estás seguro de que quieres eliminar <span className="font-semibold">{user.name}</span>? Esta
-          acción no se puede deshacer.
+          ¿Estás seguro de que quieres eliminar <span className="font-semibold">{user.name}</span>?
+          Esta acción no se puede deshacer.
         </p>
 
         {serverError && (

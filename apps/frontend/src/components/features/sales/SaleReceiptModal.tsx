@@ -12,7 +12,7 @@ interface SaleReceiptModalProps {
   onClose: () => void;
 }
 
-const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+const fmt = new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" });
 
 function shortId(id: string): string {
   return id.slice(-8).toUpperCase();
@@ -78,23 +78,23 @@ export function SaleReceiptModal({ sale, open, onClose }: SaleReceiptModalProps)
 </head>
 <body>
   <h1>StockFlow</h1>
-  <p class="subtitle">Sale Receipt</p>
+  <p class="subtitle">Voucher venta</p>
 
   <div class="meta">
     <div class="meta-row">
-      <span class="meta-label">Receipt #</span>
+      <span class="meta-label">Voucher #</span>
       <span class="meta-value">${shortId(sale.id)}</span>
     </div>
     <div class="meta-row">
-      <span class="meta-label">Date &amp; Time</span>
+      <span class="meta-label">Fecha &amp; Hora</span>
       <span class="meta-value">${saleDate}</span>
     </div>
     <div class="meta-row">
-      <span class="meta-label">Seller</span>
+      <span class="meta-label">Vendedor</span>
       <span class="meta-value">${sellerName}</span>
     </div>
     <div class="meta-row">
-      <span class="meta-label">Payment</span>
+      <span class="meta-label">Método de pago</span>
       <span class="meta-value">${paymentMethodLabels[sale.paymentMethod]}</span>
     </div>
   </div>
@@ -102,9 +102,9 @@ export function SaleReceiptModal({ sale, open, onClose }: SaleReceiptModalProps)
   <table>
     <thead>
       <tr>
-        <th>Product</th>
-        <th style="text-align:center">Qty</th>
-        <th style="text-align:right">Unit Price</th>
+        <th>Producto</th>
+        <th style="text-align:center">Ctd</th>
+        <th style="text-align:right">Precio unitario</th>
         <th style="text-align:right">Subtotal</th>
       </tr>
     </thead>
@@ -119,7 +119,7 @@ export function SaleReceiptModal({ sale, open, onClose }: SaleReceiptModalProps)
     </tfoot>
   </table>
 
-  <p class="footer">Thank you for your purchase.</p>
+  <p class="footer">Gracias por su compra.</p>
 </body>
 </html>`;
 
@@ -135,13 +135,13 @@ export function SaleReceiptModal({ sale, open, onClose }: SaleReceiptModalProps)
     <Modal
       open={open}
       onClose={onClose}
-      title={`Receipt #${shortId(sale.id)}`}
+      title={`Voucher #${shortId(sale.id)}`}
       description={`${new Date(sale.createdAt).toLocaleString()} · ${paymentMethodLabels[sale.paymentMethod]}`}
       size="lg"
       footer={
         <>
           <Button variant="secondary" size="sm" onClick={onClose}>
-            Close
+            Cerrar
           </Button>
           <Button variant="primary" size="sm" onClick={handlePrint}>
             <svg
@@ -160,7 +160,7 @@ export function SaleReceiptModal({ sale, open, onClose }: SaleReceiptModalProps)
               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
               <rect width="12" height="8" x="6" y="14" />
             </svg>
-            Print
+            Imprimir
           </Button>
         </>
       }
@@ -169,12 +169,12 @@ export function SaleReceiptModal({ sale, open, onClose }: SaleReceiptModalProps)
         {/* Meta info */}
         <div className="grid grid-cols-2 gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] p-3 text-sm">
           <div>
-            <p className="text-[var(--color-muted-foreground)]">Seller</p>
+            <p className="text-[var(--color-muted-foreground)]">Vendedor</p>
             <p className="mt-1 font-medium text-[var(--color-foreground)]">
               {seller ? (
                 seller.name
               ) : (
-                <span className="animate-pulse text-[var(--color-muted-foreground)]">Loading…</span>
+                <span className="animate-pulse text-[var(--color-muted-foreground)]">Cargando…</span>
               )}
             </p>
           </div>
@@ -192,13 +192,13 @@ export function SaleReceiptModal({ sale, open, onClose }: SaleReceiptModalProps)
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-[var(--color-muted)]/40">
                 <th className="px-4 py-2.5 text-left font-medium text-[var(--color-muted-foreground)]">
-                  Product
+                  Producto
                 </th>
                 <th className="px-4 py-2.5 text-right font-medium text-[var(--color-muted-foreground)]">
-                  Qty
+                  Ctd
                 </th>
                 <th className="px-4 py-2.5 text-right font-medium text-[var(--color-muted-foreground)]">
-                  Unit Price
+                  Precio unitario
                 </th>
                 <th className="px-4 py-2.5 text-right font-medium text-[var(--color-muted-foreground)]">
                   Subtotal

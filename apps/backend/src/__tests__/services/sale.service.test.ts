@@ -64,7 +64,7 @@ const detailRecord = {
   updatedAt: "2024-01-01T00:00:00.000Z",
 };
 
-// Raw DB row shapes (returned by tx.insert/select inside transactions)
+// Raw DB row shapes (returned by db.insert/select)
 const saleDbRow = {
   id: SALE_ID,
   totalAmount: "19.98",
@@ -95,10 +95,18 @@ const productDbRow = {
   updatedAt: new Date("2024-01-01T00:00:00.000Z"),
 };
 
-// ── Mock DB setup helpers ─────────────────────────────────────────────────────
+// ── DB mock helpers ───────────────────────────────────────────────────────────
+//
+// The services use db.select/insert/update/batch() directly (no transaction),
+// because neon-http does not support db.transaction().
+//
+// Two kinds of chains:
+//   - "awaited directly" → the terminal method returns a Promise
+//   - "into batch"       → the terminal method returns an opaque placeholder;
+//                          db.batch() is mocked separately to return the result
 
-/** Builds a mock tx.select().from(X).where(Y) chain returning given rows */
-function makeTxSelectChain(rows: unknown[]) {
+/** Awaited directly: db.select().from(X).where(Y) → rows[] */
+function makeSelectChain(rows: unknown[]) {
   return {
     from: vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue(rows),
@@ -106,8 +114,8 @@ function makeTxSelectChain(rows: unknown[]) {
   };
 }
 
-/** Builds a mock tx.insert(X).values(Y).returning() chain returning given rows */
-function makeTxInsertChain(rows: unknown[]) {
+/** Awaited directly: db.insert(X).values(Y).returning() → rows[] */
+function makeInsertChain(rows: unknown[]) {
   return {
     values: vi.fn().mockReturnValue({
       returning: vi.fn().mockResolvedValue(rows),
@@ -115,8 +123,26 @@ function makeTxInsertChain(rows: unknown[]) {
   };
 }
 
-/** Builds a mock tx.update(X).set(Y).where(Z) chain (no returning, for stock updates) */
-function makeTxUpdateChain() {
+/** Passed to db.batch(): db.insert(X).values(Y).returning() → opaque placeholder */
+function makeBatchInsertChain() {
+  return {
+    values: vi.fn().mockReturnValue({
+      returning: vi.fn().mockReturnValue({}),
+    }),
+  };
+}
+
+/** Passed to db.batch(): db.update(X).set(Y).where(Z) → opaque placeholder */
+function makeBatchUpdateChain() {
+  return {
+    set: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({}),
+    }),
+  };
+}
+
+/** Awaited directly (no returning): db.update(X).set(Y).where(Z) → resolves */
+function makeUpdateChain() {
   return {
     set: vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue([]),
@@ -124,8 +150,8 @@ function makeTxUpdateChain() {
   };
 }
 
-/** Builds a mock tx.update(X).set(Y).where(Z).returning() chain */
-function makeTxUpdateReturningChain(rows: unknown[]) {
+/** Awaited directly with returning: db.update(X).set(Y).where(Z).returning() → rows[] */
+function makeUpdateReturningChain(rows: unknown[]) {
   return {
     set: vi.fn().mockReturnValue({
       where: vi.fn().mockReturnValue({
@@ -135,8 +161,19 @@ function makeTxUpdateReturningChain(rows: unknown[]) {
   };
 }
 
-// ── Non-transactional db mock (repo handles DB) ───────────────────────────────
-const mockDb = {} as Parameters<typeof createSaleService>[0];
+// ── Mock db factory ───────────────────────────────────────────────────────────
+
+function makeMockDb() {
+  return {
+    select: vi.fn(),
+    insert: vi.fn(),
+    update: vi.fn(),
+    batch: vi.fn(),
+  };
+}
+
+// Shared mockDb for tests that only use the repository (list/get/header ops)
+const mockDb = makeMockDb() as unknown as Parameters<typeof createSaleService>[0];
 
 // ── beforeEach ────────────────────────────────────────────────────────────────
 
@@ -235,31 +272,20 @@ describe("getSaleById", () => {
 // ── createSale ────────────────────────────────────────────────────────────────
 
 describe("createSale", () => {
-  function makeMockTx() {
-    const mockTx = {
-      select: vi.fn(),
-      insert: vi.fn(),
-      update: vi.fn(),
-    };
-    return mockTx;
-  }
-
   it("creates sale, calculates totalAmount, decrements stock, and invalidates cache", async () => {
-    const mockTx = makeMockTx();
-    const transactionalDb = {
-      transaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
-    } as unknown as Parameters<typeof createSaleService>[0];
+    const db = makeMockDb() as unknown as Parameters<typeof createSaleService>[0];
+    const d = db as unknown as ReturnType<typeof makeMockDb>;
 
-    // 1. Product stock check
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([productDbRow]));
-    // 2. Insert sale
-    mockTx.insert.mockReturnValueOnce(makeTxInsertChain([saleDbRow]));
-    // 3. Insert sale details
-    mockTx.insert.mockReturnValueOnce(makeTxInsertChain([detailDbRow]));
-    // 4. Update product stock (no returning)
-    mockTx.update.mockReturnValueOnce(makeTxUpdateChain());
+    // 1. Product stock check: db.select().from().where() → [productDbRow]
+    d.select.mockReturnValueOnce(makeSelectChain([productDbRow]));
+    // 2. Insert sale header: db.insert().values().returning() → [saleDbRow]
+    d.insert.mockReturnValueOnce(makeInsertChain([saleDbRow]));
+    // 3. Batch: insert details (placeholder) + decrement stock (placeholder)
+    d.insert.mockReturnValueOnce(makeBatchInsertChain());
+    d.update.mockReturnValueOnce(makeBatchUpdateChain());
+    d.batch.mockResolvedValueOnce([[detailDbRow], []]);
 
-    const service = createSaleService(transactionalDb);
+    const service = createSaleService(db);
     const result = await service.createSale(
       { paymentMethod: "cash", items: [{ productId: PRODUCT_ID, quantity: 2, unitPrice: 9.99 }] },
       SELLER_ID,
@@ -274,15 +300,13 @@ describe("createSale", () => {
   });
 
   it("throws 404 when a product does not exist", async () => {
-    const mockTx = makeMockTx();
-    const transactionalDb = {
-      transaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
-    } as unknown as Parameters<typeof createSaleService>[0];
+    const db = makeMockDb() as unknown as Parameters<typeof createSaleService>[0];
+    const d = db as unknown as ReturnType<typeof makeMockDb>;
 
     // Product not found
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([]));
+    d.select.mockReturnValueOnce(makeSelectChain([]));
 
-    const service = createSaleService(transactionalDb);
+    const service = createSaleService(db);
     await expect(
       service.createSale(
         { paymentMethod: "cash", items: [{ productId: PRODUCT_ID, quantity: 2, unitPrice: 9.99 }] },
@@ -292,15 +316,13 @@ describe("createSale", () => {
   });
 
   it("throws 409 when product has insufficient stock", async () => {
-    const mockTx = makeMockTx();
-    const transactionalDb = {
-      transaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
-    } as unknown as Parameters<typeof createSaleService>[0];
+    const db = makeMockDb() as unknown as Parameters<typeof createSaleService>[0];
+    const d = db as unknown as ReturnType<typeof makeMockDb>;
 
-    // Product exists but stock too low
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([{ ...productDbRow, stock: 1 }]));
+    // Product exists but stock too low (stock: 1, requesting: 5)
+    d.select.mockReturnValueOnce(makeSelectChain([{ ...productDbRow, stock: 1 }]));
 
-    const service = createSaleService(transactionalDb);
+    const service = createSaleService(db);
     await expect(
       service.createSale(
         { paymentMethod: "cash", items: [{ productId: PRODUCT_ID, quantity: 5, unitPrice: 9.99 }] },
@@ -341,32 +363,23 @@ describe("updateSaleHeader", () => {
 // ── updateSaleDetail ──────────────────────────────────────────────────────────
 
 describe("updateSaleDetail", () => {
-  function makeMockTx() {
-    return {
-      select: vi.fn(),
-      update: vi.fn(),
-    };
-  }
-
   it("updates detail, recalculates totalAmount, invalidates caches", async () => {
-    const mockTx = makeMockTx();
-    const transactionalDb = {
-      transaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
-    } as unknown as Parameters<typeof createSaleService>[0];
+    const db = makeMockDb() as unknown as Parameters<typeof createSaleService>[0];
+    const d = db as unknown as ReturnType<typeof makeMockDb>;
 
     const updatedDetailDbRow = { ...detailDbRow, quantity: 5 };
     const updatedSaleDbRow = { ...saleDbRow, totalAmount: "49.95" };
 
-    // 1. Find existing detail
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([detailDbRow]));
-    // 2. Update detail (no returning needed — we re-fetch)
-    mockTx.update.mockReturnValueOnce(makeTxUpdateReturningChain([updatedDetailDbRow]));
-    // 3. Fetch all details after update
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([updatedDetailDbRow]));
-    // 4. Update sale totalAmount
-    mockTx.update.mockReturnValueOnce(makeTxUpdateReturningChain([updatedSaleDbRow]));
+    // 1. Find existing detail: db.select().from().where() → [detailDbRow]
+    d.select.mockReturnValueOnce(makeSelectChain([detailDbRow]));
+    // 2. Update detail (awaited directly, no returning): db.update().set().where()
+    d.update.mockReturnValueOnce(makeUpdateChain());
+    // 3. Fetch all details after update: db.select().from().where() → [updatedDetailDbRow]
+    d.select.mockReturnValueOnce(makeSelectChain([updatedDetailDbRow]));
+    // 4. Update sale totalAmount with returning: db.update().set().where().returning()
+    d.update.mockReturnValueOnce(makeUpdateReturningChain([updatedSaleDbRow]));
 
-    const service = createSaleService(transactionalDb);
+    const service = createSaleService(db);
     const result = await service.updateSaleDetail(SALE_ID, DETAIL_ID, { quantity: 5 });
 
     expect(result.totalAmount).toBe(49.95);
@@ -377,15 +390,13 @@ describe("updateSaleDetail", () => {
   });
 
   it("throws 404 when detail does not belong to the given sale", async () => {
-    const mockTx = makeMockTx();
-    const transactionalDb = {
-      transaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
-    } as unknown as Parameters<typeof createSaleService>[0];
+    const db = makeMockDb() as unknown as Parameters<typeof createSaleService>[0];
+    const d = db as unknown as ReturnType<typeof makeMockDb>;
 
     // Detail not found
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([]));
+    d.select.mockReturnValueOnce(makeSelectChain([]));
 
-    const service = createSaleService(transactionalDb);
+    const service = createSaleService(db);
     await expect(
       service.updateSaleDetail(SALE_ID, "bad-detail-id", { quantity: 3 }),
     ).rejects.toMatchObject({ status: 404 });
@@ -395,46 +406,35 @@ describe("updateSaleDetail", () => {
 // ── deleteSale ────────────────────────────────────────────────────────────────
 
 describe("deleteSale", () => {
-  function makeMockTx() {
-    return {
-      select: vi.fn(),
-      update: vi.fn(),
-    };
-  }
-
   it("soft-deletes sale, reverts stock, and invalidates caches", async () => {
-    const mockTx = makeMockTx();
-    const transactionalDb = {
-      transaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
-    } as unknown as Parameters<typeof createSaleService>[0];
+    const db = makeMockDb() as unknown as Parameters<typeof createSaleService>[0];
+    const d = db as unknown as ReturnType<typeof makeMockDb>;
 
-    // 1. Select sale to verify exists
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([saleDbRow]));
-    // 2. Select details for stock revert
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([detailDbRow]));
-    // 3. Soft-delete sale
-    mockTx.update.mockReturnValueOnce(makeTxUpdateChain());
-    // 4. Revert product stock
-    mockTx.update.mockReturnValueOnce(makeTxUpdateChain());
+    // 1. Select sale + details in parallel (Promise.all)
+    d.select
+      .mockReturnValueOnce(makeSelectChain([saleDbRow]))
+      .mockReturnValueOnce(makeSelectChain([detailDbRow]));
+    // 2. Batch: soft-delete sale + revert stock (both placeholders)
+    d.update.mockReturnValueOnce(makeBatchUpdateChain());
+    d.update.mockReturnValueOnce(makeBatchUpdateChain());
+    d.batch.mockResolvedValueOnce([[], []]);
 
-    const service = createSaleService(transactionalDb);
+    const service = createSaleService(db);
     await service.deleteSale(SALE_ID);
 
-    expect(mockTx.update).toHaveBeenCalledTimes(2);
+    expect(d.update).toHaveBeenCalledTimes(2);
     expect(mockCacheStore.invalidate).toHaveBeenCalledWith(`sales:${SALE_ID}`);
     expect(mockCacheStore.invalidate).toHaveBeenCalledWith("sales:list");
   });
 
   it("throws 404 when sale does not exist", async () => {
-    const mockTx = makeMockTx();
-    const transactionalDb = {
-      transaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
-    } as unknown as Parameters<typeof createSaleService>[0];
+    const db = makeMockDb() as unknown as Parameters<typeof createSaleService>[0];
+    const d = db as unknown as ReturnType<typeof makeMockDb>;
 
-    // Sale not found
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([]));
+    // Both selects run (Promise.all) — sale returns empty
+    d.select.mockReturnValueOnce(makeSelectChain([])).mockReturnValueOnce(makeSelectChain([]));
 
-    const service = createSaleService(transactionalDb);
+    const service = createSaleService(db);
     await expect(service.deleteSale("bad-id")).rejects.toMatchObject({ status: 404 });
   });
 });

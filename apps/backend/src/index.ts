@@ -15,7 +15,7 @@ import type { AppContext } from "./types";
 
 // Origins allowed to call the API.
 // Add the deployed frontend URL here when available.
-const ALLOWED_ORIGINS = ["http://localhost:5173"];
+const ALLOWED_ORIGINS = ["http://localhost:5173", "https://stockflow-2gy.pages.dev"];
 
 const app = new OpenAPIHono<AppContext>();
 

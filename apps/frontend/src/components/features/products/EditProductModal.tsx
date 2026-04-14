@@ -63,7 +63,10 @@ export function EditProductModal({ product, open, onClose }: EditProductModalPro
         // TanStack Form passes raw form state (HTML inputs return strings).
         // Parse through the Zod schema to coerce numeric fields before sending to the API.
         const coerced = updateProductSchema.parse(value);
-        await productService.updateProduct(product.id, { ...coerced, ...(imageKey ? { imageKey } : {}) });
+        await productService.updateProduct(product.id, {
+          ...coerced,
+          ...(imageKey ? { imageKey } : {}),
+        });
         await queryClient.invalidateQueries({ queryKey: ["products"] });
         onClose();
       } catch (err) {

@@ -36,9 +36,7 @@ export function CreateUserModal({ open, onClose }: CreateUserModalProps) {
         handleClose();
       } catch (err) {
         const axiosError = err as AxiosError<{ error: { message: string } }>;
-        setServerError(
-          axiosError.response?.data?.error?.message ?? "Error desconocido.",
-        );
+        setServerError(axiosError.response?.data?.error?.message ?? "Error desconocido.");
       }
     },
   });

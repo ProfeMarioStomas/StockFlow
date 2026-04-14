@@ -42,9 +42,7 @@ export function LoginPage() {
           <span className="font-mono text-2xl font-semibold tracking-tight text-[var(--color-primary)]">
             Stock<span className="text-[var(--color-accent)]">Flow</span>
           </span>
-          <p className="mt-1.5 text-sm text-[var(--color-muted-foreground)]">
-            Iniciar sesión
-          </p>
+          <p className="mt-1.5 text-sm text-[var(--color-muted-foreground)]">Iniciar sesión</p>
         </div>
 
         {/* Card */}

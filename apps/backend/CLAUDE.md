@@ -237,17 +237,21 @@ import { cors } from "hono/cors";
 
 const ALLOWED_ORIGINS = ["http://localhost:5173"]; // add deployed frontend URL here
 
-app.use("*", cors({
-  origin: (origin) => (ALLOWED_ORIGINS.includes(origin) ? origin : null),
-  allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowHeaders: ["Content-Type", "X-Correlation-Id"],
-  exposeHeaders: ["X-Correlation-Id"],
-  credentials: true, // required — auth uses httpOnly cookies
-  maxAge: 600,
-}));
+app.use(
+  "*",
+  cors({
+    origin: (origin) => (ALLOWED_ORIGINS.includes(origin) ? origin : null),
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "X-Correlation-Id"],
+    exposeHeaders: ["X-Correlation-Id"],
+    credentials: true, // required — auth uses httpOnly cookies
+    maxAge: 600,
+  }),
+);
 ```
 
 Rules:
+
 - `credentials: true` is mandatory — without it the browser will not send cookies cross-origin
 - Never use `origin: "*"` with `credentials: true` — browsers block it; always specify exact origins
 - Add the deployed frontend URL to `ALLOWED_ORIGINS` before each production deploy
@@ -290,6 +294,7 @@ const result = await service.uploadImage(c.env.BUCKET, file, config.R2_PUBLIC_UR
 #### Serving images
 
 Images are served directly from R2's public URL — no Worker proxy needed:
+
 ```
 https://pub-f0bcf28b115849ffbbb6ac15fb70a6c2.r2.dev/<key>
 ```

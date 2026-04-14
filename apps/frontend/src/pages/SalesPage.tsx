@@ -56,11 +56,11 @@ export function SalesPage() {
         {/* Page header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-[var(--color-foreground)]">Sales</h2>
+            <h2 className="text-lg font-semibold text-[var(--color-foreground)]">Ventas</h2>
             {meta && (
               <p className="mt-0.5 text-sm text-[var(--color-muted-foreground)]">
-                {meta.total} {meta.total === 1 ? "sale" : "sales"}
-                {showInactive ? " (including voided)" : ""}
+                {meta.total} {meta.total === 1 ? "venta" : "ventas"}
+                {showInactive ? " (incluyendo anuladas)" : ""}
               </p>
             )}
           </div>
@@ -76,7 +76,7 @@ export function SalesPage() {
                 }}
                 className="h-4 w-4 cursor-pointer rounded border-[var(--color-input)] accent-[var(--color-accent)]"
               />
-              Show voided
+              Mostrar anuladas
             </label>
 
             <Button variant="primary" size="sm" onClick={() => setModal({ type: "create" })}>
@@ -95,7 +95,7 @@ export function SalesPage() {
                 <path d="M5 12h14" />
                 <path d="M12 5v14" />
               </svg>
-              New Sale
+              Nueva Venta
             </Button>
           </div>
         </div>
@@ -105,17 +105,17 @@ export function SalesPage() {
           <Table>
             <TableHead>
               <tr>
-                <TableHeader>Date</TableHeader>
+                <TableHeader>Fecha</TableHeader>
                 <TableHeader>Total</TableHeader>
-                <TableHeader>Payment</TableHeader>
+                <TableHeader>Pago</TableHeader>
                 <TableHeader>Items</TableHeader>
-                <TableHeader>Status</TableHeader>
-                <TableHeader className="text-right">Actions</TableHeader>
+                <TableHeader>Estatus</TableHeader>
+                <TableHeader className="text-right">Acciones</TableHeader>
               </tr>
             </TableHead>
             <TableBody>
               {sales.length === 0 ? (
-                <TableEmpty colSpan={6} message="No sales found." />
+                <TableEmpty colSpan={6} message="No se encontraron ventas." />
               ) : (
                 sales.map((sale) => (
                   <TableRow key={sale.id}>
@@ -129,7 +129,7 @@ export function SalesPage() {
                     <TableCell>{sale.details.length}</TableCell>
                     <TableCell>
                       <Badge variant={sale.isActive ? "success" : "destructive"}>
-                        {sale.isActive ? "Active" : "Voided"}
+                        {sale.isActive ? "Activa" : "Anulada"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -163,7 +163,7 @@ export function SalesPage() {
                           onClick={() => setModal({ type: "view", sale })}
                           aria-label="View sale details"
                         >
-                          View
+                          Ver
                         </Button>
                         <Button
                           variant="ghost"
@@ -171,7 +171,7 @@ export function SalesPage() {
                           onClick={() => setModal({ type: "edit", sale })}
                           aria-label="Edit sale"
                         >
-                          Edit
+                          Editar
                         </Button>
                         {sale.isActive && (
                           <Button
@@ -181,7 +181,7 @@ export function SalesPage() {
                             aria-label="Void sale"
                             className="text-[var(--color-destructive)] hover:text-[var(--color-destructive)]"
                           >
-                            Void
+                            Anular
                           </Button>
                         )}
                       </div>

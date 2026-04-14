@@ -61,7 +61,7 @@ const detailRecord = {
   updatedAt: "2024-01-01T00:00:00.000Z",
 };
 
-// Raw DB row shapes (returned by tx.insert/select inside transactions)
+// Raw DB row shapes (returned by db.insert/select)
 const receiptDbRow = {
   id: RECEIPT_ID,
   notes: "Lote A",
@@ -90,9 +90,18 @@ const productDbRow = {
   updatedAt: new Date("2024-01-01T00:00:00.000Z"),
 };
 
-// ── Mock DB setup helpers ─────────────────────────────────────────────────────
+// ── DB mock helpers ───────────────────────────────────────────────────────────
+//
+// The services use db.select/insert/update/batch() directly (no transaction),
+// because neon-http does not support db.transaction().
+//
+// Two kinds of chains:
+//   - "awaited directly" → the terminal method returns a Promise
+//   - "into batch"       → the terminal method returns an opaque placeholder;
+//                          db.batch() is mocked separately to return the result
 
-function makeTxSelectChain(rows: unknown[]) {
+/** Awaited directly: db.select().from(X).where(Y) → rows[] */
+function makeSelectChain(rows: unknown[]) {
   return {
     from: vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue(rows),
@@ -100,7 +109,8 @@ function makeTxSelectChain(rows: unknown[]) {
   };
 }
 
-function makeTxInsertChain(rows: unknown[]) {
+/** Awaited directly: db.insert(X).values(Y).returning() → rows[] */
+function makeInsertChain(rows: unknown[]) {
   return {
     values: vi.fn().mockReturnValue({
       returning: vi.fn().mockResolvedValue(rows),
@@ -108,17 +118,37 @@ function makeTxInsertChain(rows: unknown[]) {
   };
 }
 
-function makeTxUpdateChain() {
+/** Passed to db.batch(): db.insert(X).values(Y).returning() → opaque placeholder */
+function makeBatchInsertChain() {
   return {
-    set: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue([]),
+    values: vi.fn().mockReturnValue({
+      returning: vi.fn().mockReturnValue({}),
     }),
   };
 }
 
-// ── Non-transactional db mock ─────────────────────────────────────────────────
+/** Passed to db.batch(): db.update(X).set(Y).where(Z) → opaque placeholder */
+function makeBatchUpdateChain() {
+  return {
+    set: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({}),
+    }),
+  };
+}
 
-const mockDb = {} as Parameters<typeof createInventoryReceiptService>[0];
+// ── Mock db factory ───────────────────────────────────────────────────────────
+
+function makeMockDb() {
+  return {
+    select: vi.fn(),
+    insert: vi.fn(),
+    update: vi.fn(),
+    batch: vi.fn(),
+  };
+}
+
+// Shared mockDb for tests that only use the repository (list/get/header ops)
+const mockDb = makeMockDb() as unknown as Parameters<typeof createInventoryReceiptService>[0];
 
 // ── beforeEach ────────────────────────────────────────────────────────────────
 
@@ -217,30 +247,20 @@ describe("getReceiptById", () => {
 // ── createReceipt ─────────────────────────────────────────────────────────────
 
 describe("createReceipt", () => {
-  function makeMockTx() {
-    return {
-      select: vi.fn(),
-      insert: vi.fn(),
-      update: vi.fn(),
-    };
-  }
-
   it("creates receipt, inserts details, increments stock, and invalidates cache", async () => {
-    const mockTx = makeMockTx();
-    const transactionalDb = {
-      transaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
-    } as unknown as Parameters<typeof createInventoryReceiptService>[0];
+    const db = makeMockDb() as unknown as Parameters<typeof createInventoryReceiptService>[0];
+    const d = db as unknown as ReturnType<typeof makeMockDb>;
 
-    // 1. Product exists check
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([productDbRow]));
-    // 2. Insert receipt header
-    mockTx.insert.mockReturnValueOnce(makeTxInsertChain([receiptDbRow]));
-    // 3. Insert receipt details
-    mockTx.insert.mockReturnValueOnce(makeTxInsertChain([detailDbRow]));
-    // 4. Update product stock
-    mockTx.update.mockReturnValueOnce(makeTxUpdateChain());
+    // 1. Product exists check: db.select().from().where() → [productDbRow]
+    d.select.mockReturnValueOnce(makeSelectChain([productDbRow]));
+    // 2. Insert receipt header: db.insert().values().returning() → [receiptDbRow]
+    d.insert.mockReturnValueOnce(makeInsertChain([receiptDbRow]));
+    // 3. Batch: insert details (placeholder) + update stock (placeholder)
+    d.insert.mockReturnValueOnce(makeBatchInsertChain());
+    d.update.mockReturnValueOnce(makeBatchUpdateChain());
+    d.batch.mockResolvedValueOnce([[detailDbRow], []]);
 
-    const service = createInventoryReceiptService(transactionalDb);
+    const service = createInventoryReceiptService(db);
     const result = await service.createReceipt(
       { notes: "Lote A", items: [{ productId: PRODUCT_ID, quantity: 10 }] },
       RECEIVED_BY_ID,
@@ -254,15 +274,13 @@ describe("createReceipt", () => {
   });
 
   it("throws 404 when a product does not exist", async () => {
-    const mockTx = makeMockTx();
-    const transactionalDb = {
-      transaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
-    } as unknown as Parameters<typeof createInventoryReceiptService>[0];
+    const db = makeMockDb() as unknown as Parameters<typeof createInventoryReceiptService>[0];
+    const d = db as unknown as ReturnType<typeof makeMockDb>;
 
     // Product not found
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([]));
+    d.select.mockReturnValueOnce(makeSelectChain([]));
 
-    const service = createInventoryReceiptService(transactionalDb);
+    const service = createInventoryReceiptService(db);
     await expect(
       service.createReceipt({ items: [{ productId: PRODUCT_ID, quantity: 10 }] }, RECEIVED_BY_ID),
     ).rejects.toMatchObject({ status: 404 });
@@ -300,33 +318,23 @@ describe("updateReceiptHeader", () => {
 // ── updateReceiptDetail ───────────────────────────────────────────────────────
 
 describe("updateReceiptDetail", () => {
-  function makeMockTx() {
-    return {
-      select: vi.fn(),
-      update: vi.fn(),
-    };
-  }
-
   it("updates detail quantity, applies stock delta, invalidates caches", async () => {
-    const mockTx = makeMockTx();
-    const transactionalDb = {
-      transaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
-    } as unknown as Parameters<typeof createInventoryReceiptService>[0];
+    const db = makeMockDb() as unknown as Parameters<typeof createInventoryReceiptService>[0];
+    const d = db as unknown as ReturnType<typeof makeMockDb>;
 
     const updatedDetailDbRow = { ...detailDbRow, quantity: 15 };
 
-    // 1. Find existing detail
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([detailDbRow]));
-    // 2. Update detail
-    mockTx.update.mockReturnValueOnce(makeTxUpdateChain());
-    // 3. Update product stock (delta)
-    mockTx.update.mockReturnValueOnce(makeTxUpdateChain());
-    // 4. Fetch all details after update
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([updatedDetailDbRow]));
-    // 5. Fetch receipt header
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([receiptDbRow]));
+    // 1. Find existing detail: db.select().from().where() → [detailDbRow]
+    d.select.mockReturnValueOnce(makeSelectChain([detailDbRow]));
+    // 2. Batch: update detail + update stock (both placeholders)
+    d.update.mockReturnValueOnce(makeBatchUpdateChain());
+    d.update.mockReturnValueOnce(makeBatchUpdateChain());
+    d.batch.mockResolvedValueOnce([[], []]);
+    // 3. Fetch updated state (Promise.all of two selects)
+    d.select.mockReturnValueOnce(makeSelectChain([updatedDetailDbRow])); // all details
+    d.select.mockReturnValueOnce(makeSelectChain([receiptDbRow])); // receipt header
 
-    const service = createInventoryReceiptService(transactionalDb);
+    const service = createInventoryReceiptService(db);
     const result = await service.updateReceiptDetail(RECEIPT_ID, DETAIL_ID, { quantity: 15 });
 
     expect(result.details).toHaveLength(1);
@@ -336,15 +344,13 @@ describe("updateReceiptDetail", () => {
   });
 
   it("throws 404 when detail does not belong to the given receipt", async () => {
-    const mockTx = makeMockTx();
-    const transactionalDb = {
-      transaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
-    } as unknown as Parameters<typeof createInventoryReceiptService>[0];
+    const db = makeMockDb() as unknown as Parameters<typeof createInventoryReceiptService>[0];
+    const d = db as unknown as ReturnType<typeof makeMockDb>;
 
     // Detail not found
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([]));
+    d.select.mockReturnValueOnce(makeSelectChain([]));
 
-    const service = createInventoryReceiptService(transactionalDb);
+    const service = createInventoryReceiptService(db);
     await expect(
       service.updateReceiptDetail(RECEIPT_ID, "bad-detail-id", { quantity: 5 }),
     ).rejects.toMatchObject({ status: 404 });
@@ -354,46 +360,35 @@ describe("updateReceiptDetail", () => {
 // ── deleteReceipt ─────────────────────────────────────────────────────────────
 
 describe("deleteReceipt", () => {
-  function makeMockTx() {
-    return {
-      select: vi.fn(),
-      update: vi.fn(),
-    };
-  }
-
   it("soft-deletes receipt, reverts stock, and invalidates caches", async () => {
-    const mockTx = makeMockTx();
-    const transactionalDb = {
-      transaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
-    } as unknown as Parameters<typeof createInventoryReceiptService>[0];
+    const db = makeMockDb() as unknown as Parameters<typeof createInventoryReceiptService>[0];
+    const d = db as unknown as ReturnType<typeof makeMockDb>;
 
-    // 1. Select receipt to verify exists
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([receiptDbRow]));
-    // 2. Select details for stock revert
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([detailDbRow]));
-    // 3. Soft-delete receipt
-    mockTx.update.mockReturnValueOnce(makeTxUpdateChain());
-    // 4. Revert product stock
-    mockTx.update.mockReturnValueOnce(makeTxUpdateChain());
+    // 1. Select receipt + details in parallel (Promise.all)
+    d.select
+      .mockReturnValueOnce(makeSelectChain([receiptDbRow]))
+      .mockReturnValueOnce(makeSelectChain([detailDbRow]));
+    // 2. Batch: soft-delete receipt + revert stock (both placeholders)
+    d.update.mockReturnValueOnce(makeBatchUpdateChain());
+    d.update.mockReturnValueOnce(makeBatchUpdateChain());
+    d.batch.mockResolvedValueOnce([[], []]);
 
-    const service = createInventoryReceiptService(transactionalDb);
+    const service = createInventoryReceiptService(db);
     await service.deleteReceipt(RECEIPT_ID);
 
-    expect(mockTx.update).toHaveBeenCalledTimes(2);
+    expect(d.update).toHaveBeenCalledTimes(2);
     expect(mockCacheStore.invalidate).toHaveBeenCalledWith(`receipts:${RECEIPT_ID}`);
     expect(mockCacheStore.invalidate).toHaveBeenCalledWith("receipts:list");
   });
 
   it("throws 404 when receipt does not exist", async () => {
-    const mockTx = makeMockTx();
-    const transactionalDb = {
-      transaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
-    } as unknown as Parameters<typeof createInventoryReceiptService>[0];
+    const db = makeMockDb() as unknown as Parameters<typeof createInventoryReceiptService>[0];
+    const d = db as unknown as ReturnType<typeof makeMockDb>;
 
-    // Receipt not found
-    mockTx.select.mockReturnValueOnce(makeTxSelectChain([]));
+    // Both selects run (Promise.all) — receipt returns empty
+    d.select.mockReturnValueOnce(makeSelectChain([])).mockReturnValueOnce(makeSelectChain([]));
 
-    const service = createInventoryReceiptService(transactionalDb);
+    const service = createInventoryReceiptService(db);
     await expect(service.deleteReceipt("bad-id")).rejects.toMatchObject({ status: 404 });
   });
 });
