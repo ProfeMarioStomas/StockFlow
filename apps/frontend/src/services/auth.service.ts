@@ -7,7 +7,9 @@ export type LoginPayload = {
 
 export type CurrentUser = {
   id: string;
+  name: string;
   email: string;
+  role: "admin" | "seller";
 };
 
 export const authService = {

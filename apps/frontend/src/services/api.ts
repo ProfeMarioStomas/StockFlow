@@ -15,7 +15,13 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const config = error.config;
 
-    if (error.response?.status === 401 && config && !retriedRequests.has(config)) {
+    if (
+      error.response?.status === 401 &&
+      config &&
+      !retriedRequests.has(config) &&
+      !config.url?.includes("/auth/refresh") &&
+      !config.url?.includes("/auth/me")
+    ) {
       retriedRequests.add(config);
 
       try {

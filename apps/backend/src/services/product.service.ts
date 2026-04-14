@@ -6,8 +6,16 @@ import type {
   CreateProductInput,
   ProductResponse,
   UpdateProductInput,
+  UploadImageResponse,
 } from "../models/product.model";
 import { createProductRepository } from "../repositories/product.repository";
+
+const ALLOWED_MIME_TYPES: Record<string, string> = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+};
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 const TTL_5MIN = 5 * 60 * 1000;
 
@@ -57,8 +65,12 @@ export function createProductService(db: Database) {
     async createProduct(input: CreateProductInput): Promise<ProductResponse> {
       const record = await repo.create({
         name: input.name,
+        barcode: input.barcode,
         price: input.price,
+        ...(input.costPrice !== undefined ? { costPrice: input.costPrice } : {}),
         ...(input.stock !== undefined ? { stock: input.stock } : {}),
+        ...(input.criticalStock !== undefined ? { criticalStock: input.criticalStock } : {}),
+        ...(input.imageKey !== undefined ? { imageKey: input.imageKey } : {}),
       });
 
       cache.invalidate("products:list");
@@ -71,10 +83,22 @@ export function createProductService(db: Database) {
         throw new HTTPException(404, { message: "Product not found" });
       }
 
-      const updateData: Partial<{ name: string; price: number; isActive: boolean }> = {};
+      const updateData: Partial<{
+        name: string;
+        barcode: string;
+        price: number;
+        costPrice: number;
+        criticalStock: number;
+        isActive: boolean;
+        imageKey: string | null;
+      }> = {};
       if (input.name !== undefined) updateData.name = input.name;
+      if (input.barcode !== undefined) updateData.barcode = input.barcode;
       if (input.price !== undefined) updateData.price = input.price;
+      if (input.costPrice !== undefined) updateData.costPrice = input.costPrice;
+      if (input.criticalStock !== undefined) updateData.criticalStock = input.criticalStock;
       if (input.isActive !== undefined) updateData.isActive = input.isActive;
+      if (input.imageKey !== undefined) updateData.imageKey = input.imageKey;
 
       const updated = await repo.update(id, updateData);
       if (!updated) {
@@ -95,6 +119,31 @@ export function createProductService(db: Database) {
       await repo.softDelete(id);
       cache.invalidate(`products:${id}`);
       cache.invalidate("products:list");
+    },
+
+    async uploadProductImage(
+      bucket: R2Bucket,
+      file: File,
+      r2BaseUrl: string,
+    ): Promise<UploadImageResponse> {
+      const ext = ALLOWED_MIME_TYPES[file.type];
+      if (!ext) {
+        throw new HTTPException(400, {
+          message: "Unsupported file type. Allowed: JPEG, PNG, WebP.",
+        });
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        throw new HTTPException(413, { message: "File too large. Maximum size is 5 MB." });
+      }
+
+      const key = `products/${crypto.randomUUID()}${ext}`;
+      await bucket.put(key, await file.arrayBuffer(), {
+        httpMetadata: { contentType: file.type },
+      });
+
+      const baseUrl = r2BaseUrl.replace(/\/$/, "");
+      return { key, url: `${baseUrl}/${key}` };
     },
   };
 }

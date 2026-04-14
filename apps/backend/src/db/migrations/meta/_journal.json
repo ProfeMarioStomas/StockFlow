@@ -15,6 +15,13 @@
       "when": 1775938549851,
       "tag": "0001_cuddly_cyclops",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776031400970,
+      "tag": "0002_chemical_sandman",
+      "breakpoints": true
     }
   ]
 }
