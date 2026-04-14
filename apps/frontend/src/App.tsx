@@ -8,6 +8,7 @@ import { InventoryReceiptsPage } from "./pages/InventoryReceiptsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ProductsPage } from "./pages/ProductsPage";
 import { SalesPage } from "./pages/SalesPage";
+import { ReportsPage } from "./pages/ReportsPage";
 import { SystemLogsPage } from "./pages/SystemLogsPage";
 import { UsersPage } from "./pages/UsersPage";
 
@@ -66,6 +67,17 @@ export default function App() {
               <ProtectedRoute>
                 <AppLayout title="Usuarios">
                   <UsersPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <AppLayout title="Reportes">
+                  <ReportsPage />
                 </AppLayout>
               </ProtectedRoute>
             }
