@@ -174,7 +174,9 @@ export function SaleReceiptModal({ sale, open, onClose }: SaleReceiptModalProps)
               {seller ? (
                 seller.name
               ) : (
-                <span className="animate-pulse text-[var(--color-muted-foreground)]">Cargando…</span>
+                <span className="animate-pulse text-[var(--color-muted-foreground)]">
+                  Cargando…
+                </span>
               )}
             </p>
           </div>

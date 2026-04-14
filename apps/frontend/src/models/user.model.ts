@@ -14,8 +14,14 @@ export const updateUserSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, { error: "Requerido" }),
+  newPassword: z.string().min(8, { error: "Mínimo 8 caracteres" }),
+});
+
 export type CreateUserFormValues = z.infer<typeof createUserSchema>;
 export type UpdateUserFormValues = z.infer<typeof updateUserSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
 export type UserResponse = {
   id: string;

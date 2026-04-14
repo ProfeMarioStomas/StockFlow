@@ -1,4 +1,5 @@
 import type {
+  ChangePasswordInput,
   CreateUserFormValues,
   PaginatedUsersResponse,
   UpdateUserFormValues,
@@ -19,4 +20,7 @@ export const userService = {
   deleteUser: (id: string) => api.delete<void>(`/users/${id}`),
 
   getUserById: (id: string) => api.get<UserResponse>(`/users/${id}`).then((r) => r.data),
+
+  changePassword: (id: string, data: ChangePasswordInput) =>
+    api.put(`/users/${id}/password`, data).then((r) => r.data),
 };
