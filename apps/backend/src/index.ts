@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { authRouter } from "./controllers/auth.controller";
 import { inventoryReceiptsRouter } from "./controllers/inventory-receipt.controller";
 import { productsRouter } from "./controllers/product.controller";
+import { reportsRouter } from "./controllers/report.controller";
 import { salesRouter } from "./controllers/sale.controller";
 import { systemLogsRouter } from "./controllers/system-log.controller";
 import { usersRouter } from "./controllers/user.controller";
@@ -76,6 +77,7 @@ app.route("/api/v1/products", productsRouter);
 app.route("/api/v1/sales", salesRouter);
 app.route("/api/v1/inventory-receipts", inventoryReceiptsRouter);
 app.route("/api/v1/system-logs", systemLogsRouter);
+app.route("/api/v1/reports", reportsRouter);
 
 // ── OpenAPI spec & Swagger UI ─────────────────────────────────────────────────
 app.doc("/api/docs/spec", {
